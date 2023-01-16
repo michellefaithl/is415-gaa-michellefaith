@@ -2,8 +2,36 @@
 title: "In-class_Ex02"
 ---
 
-#\| code fold: true
+```{r}
 
-#\| code-summary: "Show the code"
+#| code fold: true
+
+#| code-summary: "Show the code"
+
+pacman::p_load(sf, tidyverse, funModeling)
+
+```
 
 ## Importing Geospatial
+::: callout-note
+## Your turn
+
+Using the steps you had learned, import the LGA boundary GIS data of Nigeria downloaded from both sources recommended above.
+:::
+
+### The geoBoundaries data set
+
+```{r}
+
+#| code fold: true
+
+#| code-summary: "Show the code"
+
+geoNGA <- st_read("data/geospatial/",
+                  layer =
+                    "geoBoundaries-NGA-ADM2") %>%
+  st_transform(crs = 26392)
+
+```
+
+
