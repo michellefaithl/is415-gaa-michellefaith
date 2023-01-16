@@ -8,7 +8,7 @@ website:
     - text: "In-class Exercise"
       menu:
         - text: "In-class Exercise 2"
-          href: "In-class_Ex/In-class_ex02/In-class_ex02.qmd"
+          href: "In-class_Ex/In-class_ex02/In-class_ex02.html"
 
     right:
       - href: index.qmd
