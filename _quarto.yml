@@ -5,13 +5,15 @@ website:
   title: "is415-gaa-michellefaith"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
-      - about.qmd
     - text: "In-class Exercise"
       menu:
         - text: "In-class Exercise 2"
-          href: "In-class_Ex/In-class_ex02.html"
+          href: "In-class_Ex/In-class_ex02.qmd"
+
+    right:
+      - href: index.qmd
+        text: Home
+      - about.qmd
 
 format:
   html:
