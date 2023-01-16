@@ -4,6 +4,8 @@ title: "is415-gaa-michellefaith"
 
 This is a Quarto website.
 
+This is for IS415 GAA.
+
 To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
 
 ```{r}
