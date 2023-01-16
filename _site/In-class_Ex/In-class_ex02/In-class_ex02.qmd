@@ -1,3 +1,0 @@
----
-title: "In-class_ex02: Geospatial Data Wrangling"
----

@@ -1,0 +1,9 @@
+---
+title: "In-class_Ex02"
+---
+
+#\| code fold: true
+
+#\| code-summary: "Show the code"
+
+## Importing Geospatial
