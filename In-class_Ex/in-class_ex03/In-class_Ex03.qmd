@@ -128,5 +128,10 @@ percentmap <- function(vnam, df, legtitle=NA, mtitle="Percentile Map")
               title.position = c("right", "bottom"))
 ```
 
+#### Test drive
+```{r}
+percentmap("wp_functional", NGA_wp)
+}
+
 
 ### Box Map
