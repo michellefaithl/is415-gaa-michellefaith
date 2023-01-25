@@ -12,14 +12,15 @@ pacman::p_load(sf, tidyverse, funModeling)
 
 ```
 
-## Importing Geospatial
+## 3.1 Importing Geospatial
+
 ::: callout-note
 ## Your turn
 
 Using the steps you had learned, import the LGA boundary GIS data of Nigeria downloaded from both sources recommended above.
 :::
 
-### The geoBoundaries data set
+### 3.1.1 The geoBoundaries data set
 
 ```{r}
 
@@ -34,4 +35,196 @@ geoNGA <- st_read("data/geospatial/",
 
 ```
 
+#### The NGA data set
 
+::: {style="font-size: 1.2em"}
+```{r}
+NGA <- st_read("data/geospatial/",
+               layer = "nga_admbnda_adm2_osgof_20190417") %>%
+  st_transform(crs = 26392)
+```
+:::
+
+## 3.2 Importing
+
+
+#### Converting water point data into sf point features
+Converting an aspatial data into an sf data.frame 
+
+::: {style="font-size: 1.2em"}
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+wp_nga$Geometry = st_as_sfc(wp_nga$'New Georeferenced Column')
+wp_nga
+```
+:::
+
+::: {style="font-size: 1.2em"}
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+wp_sf <- st_sf(wp_nga, crs=4326)
+wp_sf
+```
+:::
+
+#### Transforming into Nigeria projected coordinate system
+::: {style="font-size: 1.2em"}
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+wp_sf <- wp_sf %>%
+  st_transform(crs = 26392)
+```
+:::
+
+## 4 Geospatial Data
+
+### Excluding redundant fields
+::: {style="font-size: 1.2em"}
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+NGA <- NGA %>% 
+  select (c(3:4, 8:9))
+```
+:::
+
+### Checking for duplicate name
+It is always important to check for duplicate name in the data in the data main data fields. Using duplicated() of Base R, we can flag out LGA names that might be duplicated as shown in the code chunk below. 
+
+::: {style="font-size: 1.2em"}
+```{r}
+NGA$ADN2_EN[duplicated(NGA$ADM2_EN)==TRUE]
+```
+:::
+
+Let us correct these errors by using the code chunk below.
+
+::: {style="font-size: 1.2em"}
+```{r}
+NGA$ADM2_EN[94] <- "Bassa, Kogi"
+NGA$ADM2_EN[95] <- "Bassa, Plateau"
+NGA$ADM2_EN[304] <- "Ifelodun, Kwara"
+NGA$ADM2_EN[305] <- "Ifelodun, Osun"
+NGA$ADM2_EN[355] <- "Irepodun, Kwara"
+NGA$ADM2_EN[356] <- "Irepodun, Osun"
+NGA$ADM2_EN[519] <- "Nasarawa, Kano"
+NGA$ADM2_EN[520] <- "Nasarawa, Nasarawa"
+NGA$ADM2_EN[546] <- "Obi, Benue"
+NGA$ADM2_EN[547] <- "Obi, Nasarawa"
+NGA$ADM2_EN[693] <- "Surulere, Lagos"
+NGA$ADM2_EN[694] <- "Surulere, Oyo"
+```
+:::
+
+Let us check again if there is any duplicates.
+::: {style="font-size: 1.2em"}
+```{r}
+NGA$ADN2_EN[duplicated(NGA$ADM2_EN)==TRUE]
+```
+:::
+
+## 5 Data Wrangling for Water Point Data
+
+::: {style="font-size: 1.2em"}
+```{r}
+freq(data = wp_sf,
+     input = '#status_clean')
+```
+:::
+
+Rename NA to unknown.
+::: {style="font-size: 1.2em"}
+```{r}
+wp_sf_nga <- wp_sf %>%
+  rename(status_clean = '#status_clean') %>%
+  select(status_clean) %>%
+  mutate(status_clean = replace_na(
+    status_clean, "unknown"))
+```
+:::
+
+### Extracting Water Point Data
+Now we are ready to extract the water point daa according to their status.
+
+The code chunk below is used to extract functional water point.
+
+::: {style="font-size: 1.2em"}
+```{r}
+wp_functional <- wp_sf_nga %>%
+  filter(status_clean %in%
+           c("Functional",
+             "Functional but not in use",
+             "Functional but needs repair"))
+```
+:::
+
+The code chunk below is used to extract nonfunctional water point.
+
+::: {style="font-size: 1.2em"}
+```{r}
+wp_nonfunctional <- wp_sf_nga %>%
+  filter(status_clean %in%
+           c("Abandoned/Decommissioned",
+             "Abandoned",
+             "Non-Functional due to dry season",
+             "Non-Functional",
+             "Non functional due to dry season"))
+```
+:::
+
+The code chunk below is used to extract water point 
+::: {style="font-size: 1.2em"}
+```{r}
+wp_unknown <- wp_sf_nga %>%
+  filter(status_clean == "unknown")
+```
+:::
+
+
+### Performing Point-in-Polygon Count
+::: {style="font-size: 1.2em"}
+```{r}
+NGA_wp <- NGA %>%
+  mutate (`total_wp` = lengths(
+    st_intersects(NGA, wp_sf_nga))) %>%
+  mutate (`wp_functional` = lengths(
+    st_intersects(NGA, wp_functional))) %>%
+  mutate (`wp_nonfunctional` = lengths(
+    st_intersects(NGA, wp_nonfunctional))) %>%
+  mutate (`wp_unknown` = lengths(
+    st_intersects(NGA, wp_unknown))) 
+```
+:::
+
+### Saving the analytical data in rds format
+In order to retain the sf object structure for subsequent analysis, it is recommended to save the sf data.frame into rds format.
+
+In the code chunk below, write_rds() of readr package is used to export an sf data.frame into rds format.
+
+::: {style="font-size: 1.2em"}
+```{r}
+write_rds(NGA_wp, "data/rds/NGA_WP.rds")
+```
+:::
+
+#### Visualising attributes by using statistical graphs
+::: {style="font-size: 1.2em"}
+```{r}
+ggplot(data = NGA_wp,
+       aes(x = total_wp)) +
+  geom_histogram(bins=20, color="black",
+                 fill="light blue") +
+  geom_vline(aes(xintercept=mean(
+    total_wp, na.rm=T  )),
+              color = "red",
+              linetype="dashed",
+              size=0.8) +
+  ggtitle("Distribution of total water points by LGA") +
+  xlab("No. of water points") +
+  ylab("No. of\nLGAs") +
+  theme(axis.title.y=element_text(angle=0))
+```
+:::

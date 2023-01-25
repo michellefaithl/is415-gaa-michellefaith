@@ -12,5 +12,33 @@
     "title": "is415-gaa-michellefaith",
     "section": "",
     "text": "This is for IS415 GAA.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites.\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_ex02/In-class_Ex02.html",
+    "href": "In-class_Ex/In-class_ex02/In-class_Ex02.html",
+    "title": "In-class_Ex02",
+    "section": "",
+    "text": "#| code fold: true\n\n#| code-summary: \"Show the code\"\n\npacman::p_load(sf, tidyverse, funModeling)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_ex02/In-class_Ex02.html#importing-geospatial",
+    "href": "In-class_Ex/In-class_ex02/In-class_Ex02.html#importing-geospatial",
+    "title": "In-class_Ex02",
+    "section": "Importing Geospatial",
+    "text": "Importing Geospatial\n\n\n\n\n\n\nYour turn\n\n\n\nUsing the steps you had learned, import the LGA boundary GIS data of Nigeria downloaded from both sources recommended above.\n\n\n\nThe geoBoundaries data set\n\n#| code fold: true\n\n#| code-summary: \"Show the code\"\n\ngeoNGA <- st_read(\"data/geospatial/\",\n                  layer =\n                    \"geoBoundaries-NGA-ADM2\") %>%\n  st_transform(crs = 26392)\n\nReading layer `geoBoundaries-NGA-ADM2' from data source \n  `C:\\michellefaithl\\is415-gaa-michellefaith\\In-class_Ex\\In-class_ex02\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 774 features and 6 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 2.668534 ymin: 4.273007 xmax: 14.67882 ymax: 13.89442\nGeodetic CRS:  WGS 84"
+  },
+  {
+    "objectID": "In-class_Ex/in-class_ex03/In-class_Ex03.html",
+    "href": "In-class_Ex/in-class_ex03/In-class_Ex03.html",
+    "title": "in-class_ex03: Analytical Mapping",
+    "section": "",
+    "text": "pacman::p_load(tmap, tidyverse, funModeling)\n\n\nNGA_wp <- read_rds(\"data/rds/NGA_wp.rds\")"
+  },
+  {
+    "objectID": "In-class_Ex/in-class_ex03/In-class_Ex03.html#choropleth-map-for-rates",
+    "href": "In-class_Ex/in-class_ex03/In-class_Ex03.html#choropleth-map-for-rates",
+    "title": "in-class_ex03: Analytical Mapping",
+    "section": "Choropleth Map for Rates",
+    "text": "Choropleth Map for Rates\n\nDeriving Proportion of Functional Water Points and Non-Functional Water Points\n\nNGA_wp <- NGA_wp %>%\n  mutate(pct_functional = wp_functional/total_wp) %>%\n  mutate(pct_nonfunctional = wp_nonfunctional/total_wp)\n\n\n\nPlotting map of rate\nPlot a choropleth map showing the distribution of percentage functional water point by LGA\n\ntm_shape(NGA_wp) +\n  tm_fill(\"pct_functional\",\n          n=10,\n          style = \"equal\",\n          palette = \"Blues\",\n          legend.hist = TRUE) +\n  tm_borders(lwd = 0.1,\n             alpha = 1) +\n  tm_layout(main.title = \"Rate map of functional water point by LGAs\",\n            legend.outside = TRUE)"
   }
 ]
