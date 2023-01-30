@@ -5,18 +5,21 @@ website:
   title: "is415-gaa-michellefaith"
   navbar:
     left:
-      - text: "Hand-on Exercise"
-        menu:
-          - text: "Hand-on Exercise"
-            href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
-          - text: "In-Class Exercise 3"
-            href: "In-class_Ex/In-class_ex03/In-class_Ex03.html"
-      - text: "In-class Exercise"
-        menu:
-          - text: "In-Class Exercise 2"
-            href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
-          - text: "In-Class Exercise 3"
-            href: "In-class_Ex/In-class_ex03/In-class_Ex03.html"
+      - sidebar:Hands-on Exercise
+      - sidebar:In-class Exercise
+
+    Hands-on Exercise:
+      - text: "Hand-on Esxercise"
+        href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
+      - text: "In-Class Exercise 3"
+        href: "In-class_Ex/In-class_ex03/In-class_Ex03.html"
+
+    In-class Exercise:
+      - text: "In-Class Exercise 2"
+        href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
+      - text: "In-Class Exercise 3"
+        href: "In-class_Ex/In-class_ex03/In-class_Ex03.html"
+
     right:
       - href: index.qmd
         text: Home

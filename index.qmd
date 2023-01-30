@@ -4,4 +4,3 @@ title: "is415-gaa-michellefaith"
 
 This is for IS415 GAA AY2022-23 Semester 2.
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
