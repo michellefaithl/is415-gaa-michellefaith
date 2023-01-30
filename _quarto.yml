@@ -5,21 +5,14 @@ website:
   title: "is415-gaa-michellefaith"
   navbar:
     left:
-      - sidebar:Handson
-      - sidebar:Inclass
-
-    sidebar:
-      - id: Handson
-        title: "Hand-on Exercise"
-        contents:
-          - text: "Hand-on Exercise 2"
+      - text: "Hand-on Exercise"
+        menu:
+          - text: "Hand-on Exercise"
             href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
           - text: "In-Class Exercise 3"
             href: "In-class_Ex/In-class_ex03/In-class_Ex03.html"
-
-      - id: Handson
-        title: "In-Class Exercise"
-        contents:
+      - text: "In-class Exercise"
+        menu:
           - text: "In-Class Exercise 2"
             href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
           - text: "In-Class Exercise 3"
