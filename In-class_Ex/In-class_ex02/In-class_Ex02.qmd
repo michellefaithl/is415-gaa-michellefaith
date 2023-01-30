@@ -45,11 +45,20 @@ NGA <- st_read("data/geospatial/",
 ```
 :::
 
+::: {style="font-size: 1.2em"}
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
+  filter(`#clean_country_name` == "Nigeria")
+```
+:::
+
 ## 3.2 Importing
 
-
 #### Converting water point data into sf point features
-Converting an aspatial data into an sf data.frame 
+
+Converting an aspatial data into an sf data.frame
 
 ::: {style="font-size: 1.2em"}
 ```{r}
@@ -70,6 +79,7 @@ wp_sf
 :::
 
 #### Transforming into Nigeria projected coordinate system
+
 ::: {style="font-size: 1.2em"}
 ```{r}
 #| code-fold: true
@@ -82,6 +92,7 @@ wp_sf <- wp_sf %>%
 ## 4 Geospatial Data
 
 ### Excluding redundant fields
+
 ::: {style="font-size: 1.2em"}
 ```{r}
 #| code-fold: true
@@ -92,7 +103,8 @@ NGA <- NGA %>%
 :::
 
 ### Checking for duplicate name
-It is always important to check for duplicate name in the data in the data main data fields. Using duplicated() of Base R, we can flag out LGA names that might be duplicated as shown in the code chunk below. 
+
+It is always important to check for duplicate name in the data in the data main data fields. Using duplicated() of Base R, we can flag out LGA names that might be duplicated as shown in the code chunk below.
 
 ::: {style="font-size: 1.2em"}
 ```{r}
@@ -119,11 +131,12 @@ NGA$ADM2_EN[694] <- "Surulere, Oyo"
 ```
 :::
 
-Let us check again if there is any duplicates.
-::: {style="font-size: 1.2em"}
+Let us check again if there is any duplicates. ::: {style="font-size: 1.2em"}
+
 ```{r}
 NGA$ADN2_EN[duplicated(NGA$ADM2_EN)==TRUE]
 ```
+
 :::
 
 ## 5 Data Wrangling for Water Point Data
@@ -135,8 +148,8 @@ freq(data = wp_sf,
 ```
 :::
 
-Rename NA to unknown.
-::: {style="font-size: 1.2em"}
+Rename NA to unknown. ::: {style="font-size: 1.2em"}
+
 ```{r}
 wp_sf_nga <- wp_sf %>%
   rename(status_clean = '#status_clean') %>%
@@ -144,9 +157,11 @@ wp_sf_nga <- wp_sf %>%
   mutate(status_clean = replace_na(
     status_clean, "unknown"))
 ```
+
 :::
 
 ### Extracting Water Point Data
+
 Now we are ready to extract the water point daa according to their status.
 
 The code chunk below is used to extract functional water point.
@@ -175,16 +190,17 @@ wp_nonfunctional <- wp_sf_nga %>%
 ```
 :::
 
-The code chunk below is used to extract water point 
-::: {style="font-size: 1.2em"}
+The code chunk below is used to extract water point ::: {style="font-size: 1.2em"}
+
 ```{r}
 wp_unknown <- wp_sf_nga %>%
   filter(status_clean == "unknown")
 ```
+
 :::
 
-
 ### Performing Point-in-Polygon Count
+
 ::: {style="font-size: 1.2em"}
 ```{r}
 NGA_wp <- NGA %>%
@@ -200,6 +216,7 @@ NGA_wp <- NGA %>%
 :::
 
 ### Saving the analytical data in rds format
+
 In order to retain the sf object structure for subsequent analysis, it is recommended to save the sf data.frame into rds format.
 
 In the code chunk below, write_rds() of readr package is used to export an sf data.frame into rds format.
@@ -211,6 +228,7 @@ write_rds(NGA_wp, "data/rds/NGA_WP.rds")
 :::
 
 #### Visualising attributes by using statistical graphs
+
 ::: {style="font-size: 1.2em"}
 ```{r}
 ggplot(data = NGA_wp,
