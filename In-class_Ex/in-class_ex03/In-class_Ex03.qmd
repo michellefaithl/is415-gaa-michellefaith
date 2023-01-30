@@ -6,10 +6,12 @@ date-modified: "r Sys.Date()"
 
 # Getting Started
 
-## 
+## Installing and loading packages
 ```{r}
 pacman::p_load(tmap, tidyverse, funModeling)
 ```
+
+## Importing data
 
 ```{r}
 NGA_wp <- read_rds("data/rds/NGA_wp.rds")
@@ -89,7 +91,7 @@ NGA_wp <- NGA_wp %>%
   drop_na()
 ```
 
-Step 2: Creating customised classification and extracting values
+Step 2: Creating customized classification and extracting values
 
 ```{r}
 percent <- c(0,.01,.1,.5,.9,.99,1)
@@ -111,27 +113,32 @@ get.var <- function(vname,df) {
 
 #### 5.1.4 A percentile mapping function
 ```{r}
-percentmap <- function(vnam, df, legtitle=NA, mtitle="Percentile Map")
+percentmap <- function(vnam, df, legtitle=NA, mtitle="Percentile Map"){
   percent <- c(0,.01,.1,.5,.9,.99,1)
   var <- get.var(vnam, df)
   bperc <- quantile(var, percent)
   tm_shape(df) +
   tm_polygons() +
   tm_shape(df) +
-    tm_fill(vnam,
-            title=legtitle,
-            breaks=bperc,
-            palette="Blues",
-            labels=c("<1%", "1% - 10%", "10% - 50%", "50% - 90%", "90% - 100%", "100%")) +
-    tm_borders() +
-    tm_layout(main.title = mtitle,
-              title.position = c("right", "bottom"))
+     tm_fill(vnam,
+             title=legtitle,
+             breaks=bperc,
+             palette="Blues",
+          labels=c("< 1%", "1% - 10%", "10% - 50%", "50% - 90%", "90% - 99%", "> 99%"))  +
+  tm_borders() +
+  tm_layout(main.title = mtitle, 
+            title.position = c("right","bottom"))
+}
 ```
 
 #### Test drive
 ```{r}
-percentmap("wp_functional", NGA_wp)
-}
-
-
+percentmap("total_wp", NGA_wp)
+```
 ### Box Map
+```{r}
+ggplot(data = NGA_wp,
+       aes(x = "",
+           y = wp_nonfunctional)) +
+  geom_boxplot()
+```
