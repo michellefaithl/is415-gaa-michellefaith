@@ -7,9 +7,9 @@ website:
     left:
       - text: "Hand-on Exercise"
         menu:
-          - text: "Hand-on Exercise"
+          - text: "Hand-on Exercise 1"
             href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
-          - text: "In-Class Exercise 3"
+          - text: "In-Class Exercise 2"
             href: "In-class_Ex/In-class_ex03/In-class_Ex03.html"
       - text: "In-class Exercise"
         menu:
@@ -17,7 +17,12 @@ website:
             href: "In-class_Ex/In-class_ex02/In-class_Ex02.html"
           - text: "In-Class Exercise 3"
             href: "In-class_Ex/In-class_ex03/In-class_Ex03.html"
-
+          - text: "In-Class Exercise 4"
+            href: "In-class_Ex/In-class_ex04/In-class_Ex04.html"
+      - text: "Take-home Exercise"
+        menu:
+          - text: "In-Class Exercise 1"
+            href: "Take-home_Ex/Take-home_Ex01.html"
 
     right:
       - href: index.qmd
