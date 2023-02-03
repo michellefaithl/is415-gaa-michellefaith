@@ -1,22 +1,23 @@
 ---
 title: "Hands-on_Ex01"
 ---
+
 # Getting started
 
 In this hands-on exercise, two R packages will be used. They are:
 
-- sf for importing, managing, and processing geospatial data, and
-- tidyverse for performing data science tasks such as importing, wrangling and visualising data.
+-   sf for importing, managing, and processing geospatial data, and
+-   tidyverse for performing data science tasks such as importing, wrangling and visualising data.
 
 ```{r}
 pacman::p_load(sf, tidyverse)
 ```
 
 # importing polygon feature data in shapefile format
+
 The code chunk below uses st_read() function of sf package to import MP14_SUBZONE_WEB_PL shapefile into R as a polygon feature data frame. Note that when the input geospatial data is in shapefile format, two arguments will be used, namely: dsn to define the data path and layer to provide the shapefile name. Also note that no extension such as .shp, .dbf, .prj and .shx are needed.
 
 ```{r}
 mpsz = st_read(dsn = "data/geospatial", 
                   layer = "MP14_SUBZONE_WEB_PL")
 ```
-
