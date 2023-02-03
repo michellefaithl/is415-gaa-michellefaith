@@ -88,6 +88,6 @@
     "href": "Hands-on_Ex/Hands-on_Ex01/Hands_on_Ex01.html",
     "title": "Hands-on_Ex01",
     "section": "",
-    "text": "In this hands-on exercise, two R packages will be used. They are:\n\nsf for importing, managing, and processing geospatial data, and\ntidyverse for performing data science tasks such as importing, wrangling and visualising data.\n\n\npacman::p_load(sf, tidyverse)"
+    "text": "importing polygon feature data in shapefile format\nThe code chunk below uses st_read() function of sf package to import MP14_SUBZONE_WEB_PL shapefile into R as a polygon feature data frame. Note that when the input geospatial data is in shapefile format, two arguments will be used, namely: dsn to define the data path and layer to provide the shapefile name. Also note that no extension such as .shp, .dbf, .prj and .shx are needed.\n\nmpsz = st_read(dsn = \"data/geospatial\", \n                  layer = \"MP14_SUBZONE_WEB_PL\")\n\nReading layer `MP14_SUBZONE_WEB_PL' from data source \n  `C:\\michellefaithl\\is415-gaa-michellefaith\\Hands-on_Ex\\Hands-on_Ex01\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 323 features and 15 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 2667.538 ymin: 15748.72 xmax: 56396.44 ymax: 50256.33\nProjected CRS: SVY21"
   }
 ]
