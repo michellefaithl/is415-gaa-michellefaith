@@ -1,1 +1,17 @@
 /* css styles */
+h1 {
+  font-size: 30px;
+  font-family: calibri;
+}
+
+p {
+  color: #5A5A5A;
+  font-size: 15px;
+  font-family: calibri;
+}
+
+.navbar {
+  background-color: #2d3352;
+  font-size: 15px;
+
+}
