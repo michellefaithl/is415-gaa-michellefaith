@@ -17,14 +17,13 @@ editor: visual
 pacman::p_load(maptools, sf, raster, spatstat, tmap)
 ```
 
-
 ## importing data
+
 ```{r}
 childcare_sf <-
   st_read("data/child-care-services-geojson.geojson") %>%
   st_transform(crs = 3414)
 ```
-
 
 ```{r}
 sg_sf <- st_read(dsn = "data", 
@@ -35,11 +34,15 @@ sg_sf <- st_read(dsn = "data",
 mpsz_sf <- st_read(dsn = "data", 
                 layer = "MP14_SUBZONE_WEB_PL")
 ```
+
 ```{r}
 tmap_mode('view')
 tm_shape(childcare_sf)+
-  tm_dots()
+  tm_dots(alph=1,
+          size=0.01)+
+  tm_view (set.zoom.limits = c(11,14))
 ```
+
 ```{r}
 
 ```
@@ -51,12 +54,14 @@ sg <- as_Spatial(sg_sf)
 ```
 
 ### generic format
+
 ```{r}
 childcare_sp <- as(childcare, "SpatialPoints")
 sg_sp <- as(sg, "SpatialPolygons")
 ```
 
 ### ppp format
+
 ```{r}
 childcare_ppp <- as(childcare_sp, "ppp")
 childcare_ppp
@@ -69,4 +74,3 @@ plot(childcare_ppp)
 ```{r}
 summary(childcare_ppp)
 ```
-
