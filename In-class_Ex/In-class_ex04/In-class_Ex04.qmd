@@ -74,3 +74,6 @@ plot(childcare_ppp)
 ```{r}
 summary(childcare_ppp)
 ```
+
+
+
