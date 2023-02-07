@@ -43,7 +43,6 @@ tm_shape(studyArea) +
   tm_view(set.zoom.limits = c(12,16))
 ```
 
-
 ### Local Colocation Quotients (LClQ)
 
 search for the 6 nearest neighbour.
@@ -80,5 +79,3 @@ tm_shape(studyArea) +
           border.lwd = 0.5) +
   tm_view(set.zoom.limits = c(12,16))
 ```
-
-

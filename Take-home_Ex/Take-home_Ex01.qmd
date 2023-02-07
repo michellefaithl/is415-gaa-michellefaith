@@ -9,9 +9,119 @@ execute:
 editor: visual
 ---
 
-# Setting the Scene
-Water is an important resource to mankind. Clean and accessible water is critical to human health. It provides a healthy environment, a sustainable economy, reduces poverty and ensures peace and security. Yet over 40% of the global population does not have access to sufficient clean water. By 2025, 1.8 billion people will be living in countries or regions with absolute water scarcity, according to UN-Water. The lack of water poses a major threat to several sectors, including food security. Agriculture uses about 70% of the world’s accessible freshwater.
+## 1 Overview
+
+### 1.1 Setting the Scene
+
+Water is an important resource to mankind. Clean and accessible water is critical to human health. It provides a healthy environment, a sustainable economy, reduces poverty and ensures peace and security. Yet over 40% of the global population does not have access to sufficient clean water. By 2025, 1.8 billion people will be living in countries or regions with absolute water scarcity, according to UN-Water. The lack of water poses a major threat to several sectors, including food security. Agriculture uses about 70% of the world's accessible freshwater.
 
 Developing countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent.
 
 To address the issue of providing clean and sustainable water supply to the rural community, a global [Water Point Data Exchange (WPdx)](https://www.waterpointdata.org/about/) project has been initiated. The main aim of this initiative is to collect water point related data from rural areas at the water point or small water scheme level and share the data via WPdx Data Repository, a cloud-based data library. What is so special of this project is that data are collected based on WPDx Data Standard.
+
+### 1.2 Objectives
+
+Geospatial analytics hold tremendous potential to address complex problems facing society. In this study, you are tasked to apply appropriate spatial point patterns analysis methods to discover the geographical distribution of functional and non-function water points and their co-locations if any in Osun State, Nigeria.
+
+### 1.3 The Data
+
+#### 1.3.1 Aspatial Data
+
+For the purpose of this assignment, data from [WPdx Global Data Repositories](https://www.waterpointdata.org/access-data/) will be used. There are two versions of the data. They are: WPdx-Basic and WPdx+. You are required to use WPdx+ data set.
+
+#### 1.3.2 Spatial Data
+
+Nigeria Level-2 Administrative Boundary (also known as Local Government Area) polygon features GIS data will be used in this take-home exercise. The data can be downloaded either from The [Humanitarian Data Exchange portal](https://data.humdata.org/) or [geoBoundaries](https://www.geoboundaries.org/).
+
+#### 1.4 The Task
+
+The specific tasks of this take-home exercise are as follows:
+
+##### Exploratory Spatial Data Analysis (ESDA)
+
+-   Derive kernel density maps of functional and non-functional water points. Using appropriate tmap functions,
+
+-   Display the kernel density maps on openstreetmap of Osub State, Nigeria. Describe the spatial patterns revealed by the kernel density maps.
+
+-   Highlight the advantage of kernel density map over point map.
+
+##### Second-order Spatial Point Patterns Analysis
+
+With reference to the spatial point patterns observed in ESDA:
+
+-   Formulate the null hypothesis and alternative hypothesis and select the confidence level.
+
+-   Perform the test by using appropriate Second order spatial point patterns analysis technique.
+
+-   With reference to the analysis results, draw statistical conclusions.
+
+##### Spatial Correlation Analysis
+
+In this section, you are required to confirm statistically if the spatial distribution of functional and non-functional water points are independent from each other.
+
+-   Formulate the null hypothesis and alternative hypothesis and select the confidence level.
+
+-   Perform the test by using appropriate Second order spatial point patterns analysis technique.
+
+-   With reference to the analysis results, draw statistical conclusions.
+
+## 2 Getting Started
+
+The R packages we'll use for this analysis are:
+
+-   **sf**: used for importing, managing, and processing geospatial data
+
+-   **tidyverse**: a collection of packages for data science tasks
+
+-   **tmap**: used for creating thematic maps, such as choropleth and bubble maps
+
+-   **spatstat**: used for point pattern analysis
+
+-   **raster**: reads, writes, manipulates, analyses and models gridded spatial data (e.g. raster-based geographical data)
+
+```{r}
+pacman::p_load(sf, tidyverse, tmap, spatstat, raster, funModeling)
+```
+
+## 3 Handling Geospatial Data
+
+### 3.1 Importing Geospatial Data
+
+We will be importing the fellowing geospatial datasets in R by using [st_read()](https://r-spatial.github.io/sf/reference/st_read.html) of sf package:
+
+-   The geoBoundaries Dataset
+
+-   The NGA data set
+
+##### 3.1.1 The geoBoundaries Dataset
+
+```{r}
+geoNGA <- st_read("data/geospatial/",
+                  layer = "geoBoundaries-NGA-ADM2") %>%
+  st_transform(crs = 26392)
+```
+
+##### 3.1.2 The NGA Dataset
+
+```{r}
+NGA <- st_read("data/geospatial/",
+               layer = "geoBoundaries-NGA-ADM2") %>%
+  st_transform(crs = 26392)
+```
+
+By examining both sf dataframe closely, we notice that NGA provide both LGA and state information. Hence, NGA data.frame will be used for the subsequent processing.
+
+### 3.2 Importing Geospatial Data
+
+We will use [read_csv()](https://readr.tidyverse.org/reference/read_delim.html) of readr package to import only water points within Nigeria.
+
+```{r}
+wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
+  filter(`#clean_country_name` == "Nigeria")
+```
+
+##### Converting water point data into sf point features
+
+Converting an aspatial data into an sf data.frame involves two steps.
+
+First, we need to convert the [wkt](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) field into sfc field by using st_as_sfc() data type.

@@ -21,6 +21,69 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1.6em;
   vertical-align: middle;
 }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
 </style>
 
 
@@ -150,7 +213,18 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#setting-the-scene" id="toc-setting-the-scene" class="nav-link active" data-scroll-target="#setting-the-scene">Setting the Scene</a></li>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">1 Overview</a>
+  <ul class="collapse">
+  <li><a href="#setting-the-scene" id="toc-setting-the-scene" class="nav-link" data-scroll-target="#setting-the-scene">1.1 Setting the Scene</a></li>
+  <li><a href="#objectives" id="toc-objectives" class="nav-link" data-scroll-target="#objectives">1.2 Objectives</a></li>
+  <li><a href="#the-data" id="toc-the-data" class="nav-link" data-scroll-target="#the-data">1.3 The Data</a></li>
+  </ul></li>
+  <li><a href="#getting-started" id="toc-getting-started" class="nav-link" data-scroll-target="#getting-started">2 Getting Started</a></li>
+  <li><a href="#handling-geospatial-data" id="toc-handling-geospatial-data" class="nav-link" data-scroll-target="#handling-geospatial-data">3 Handling Geospatial Data</a>
+  <ul class="collapse">
+  <li><a href="#importing-geospatial-data" id="toc-importing-geospatial-data" class="nav-link" data-scroll-target="#importing-geospatial-data">3.1 Importing Geospatial Data</a></li>
+  <li><a href="#importing-geospatial-data-1" id="toc-importing-geospatial-data-1" class="nav-link" data-scroll-target="#importing-geospatial-data-1">3.2 Importing Geospatial Data</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -179,13 +253,136 @@ ul.task-list li input[type="checkbox"] {
 
 </header>
 
-<section id="setting-the-scene" class="level1">
-<h1>Setting the Scene</h1>
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">1 Overview</h2>
+<section id="setting-the-scene" class="level3">
+<h3 class="anchored" data-anchor-id="setting-the-scene">1.1 Setting the Scene</h3>
 <p>Water is an important resource to mankind. Clean and accessible water is critical to human health. It provides a healthy environment, a sustainable economy, reduces poverty and ensures peace and security. Yet over 40% of the global population does not have access to sufficient clean water. By 2025, 1.8 billion people will be living in countries or regions with absolute water scarcity, according to UN-Water. The lack of water poses a major threat to several sectors, including food security. Agriculture uses about 70% of the world’s accessible freshwater.</p>
 <p>Developing countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent.</p>
 <p>To address the issue of providing clean and sustainable water supply to the rural community, a global <a href="https://www.waterpointdata.org/about/">Water Point Data Exchange (WPdx)</a> project has been initiated. The main aim of this initiative is to collect water point related data from rural areas at the water point or small water scheme level and share the data via WPdx Data Repository, a cloud-based data library. What is so special of this project is that data are collected based on WPDx Data Standard.</p>
+</section>
+<section id="objectives" class="level3">
+<h3 class="anchored" data-anchor-id="objectives">1.2 Objectives</h3>
+<p>Geospatial analytics hold tremendous potential to address complex problems facing society. In this study, you are tasked to apply appropriate spatial point patterns analysis methods to discover the geographical distribution of functional and non-function water points and their co-locations if any in Osun State, Nigeria.</p>
+</section>
+<section id="the-data" class="level3">
+<h3 class="anchored" data-anchor-id="the-data">1.3 The Data</h3>
+<section id="aspatial-data" class="level4">
+<h4 class="anchored" data-anchor-id="aspatial-data">1.3.1 Aspatial Data</h4>
+<p>For the purpose of this assignment, data from <a href="https://www.waterpointdata.org/access-data/">WPdx Global Data Repositories</a> will be used. There are two versions of the data. They are: WPdx-Basic and WPdx+. You are required to use WPdx+ data set.</p>
+</section>
+<section id="spatial-data" class="level4">
+<h4 class="anchored" data-anchor-id="spatial-data">1.3.2 Spatial Data</h4>
+<p>Nigeria Level-2 Administrative Boundary (also known as Local Government Area) polygon features GIS data will be used in this take-home exercise. The data can be downloaded either from The <a href="https://data.humdata.org/">Humanitarian Data Exchange portal</a> or <a href="https://www.geoboundaries.org/">geoBoundaries</a>.</p>
+</section>
+<section id="the-task" class="level4">
+<h4 class="anchored" data-anchor-id="the-task">1.4 The Task</h4>
+<p>The specific tasks of this take-home exercise are as follows:</p>
+<section id="exploratory-spatial-data-analysis-esda" class="level5">
+<h5 class="anchored" data-anchor-id="exploratory-spatial-data-analysis-esda">Exploratory Spatial Data Analysis (ESDA)</h5>
+<ul>
+<li><p>Derive kernel density maps of functional and non-functional water points. Using appropriate tmap functions,</p></li>
+<li><p>Display the kernel density maps on openstreetmap of Osub State, Nigeria. Describe the spatial patterns revealed by the kernel density maps.</p></li>
+<li><p>Highlight the advantage of kernel density map over point map.</p></li>
+</ul>
+</section>
+<section id="second-order-spatial-point-patterns-analysis" class="level5">
+<h5 class="anchored" data-anchor-id="second-order-spatial-point-patterns-analysis">Second-order Spatial Point Patterns Analysis</h5>
+<p>With reference to the spatial point patterns observed in ESDA:</p>
+<ul>
+<li><p>Formulate the null hypothesis and alternative hypothesis and select the confidence level.</p></li>
+<li><p>Perform the test by using appropriate Second order spatial point patterns analysis technique.</p></li>
+<li><p>With reference to the analysis results, draw statistical conclusions.</p></li>
+</ul>
+</section>
+<section id="spatial-correlation-analysis" class="level5">
+<h5 class="anchored" data-anchor-id="spatial-correlation-analysis">Spatial Correlation Analysis</h5>
+<p>In this section, you are required to confirm statistically if the spatial distribution of functional and non-functional water points are independent from each other.</p>
+<ul>
+<li><p>Formulate the null hypothesis and alternative hypothesis and select the confidence level.</p></li>
+<li><p>Perform the test by using appropriate Second order spatial point patterns analysis technique.</p></li>
+<li><p>With reference to the analysis results, draw statistical conclusions.</p></li>
+</ul>
+</section>
+</section>
+</section>
+</section>
+<section id="getting-started" class="level2">
+<h2 class="anchored" data-anchor-id="getting-started">2 Getting Started</h2>
+<p>The R packages we’ll use for this analysis are:</p>
+<ul>
+<li><p><strong>sf</strong>: used for importing, managing, and processing geospatial data</p></li>
+<li><p><strong>tidyverse</strong>: a collection of packages for data science tasks</p></li>
+<li><p><strong>tmap</strong>: used for creating thematic maps, such as choropleth and bubble maps</p></li>
+<li><p><strong>spatstat</strong>: used for point pattern analysis</p></li>
+<li><p><strong>raster</strong>: reads, writes, manipulates, analyses and models gridded spatial data (e.g.&nbsp;raster-based geographical data)</p></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, tidyverse, tmap, spatstat, raster, funModeling)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="handling-geospatial-data" class="level2">
+<h2 class="anchored" data-anchor-id="handling-geospatial-data">3 Handling Geospatial Data</h2>
+<section id="importing-geospatial-data" class="level3">
+<h3 class="anchored" data-anchor-id="importing-geospatial-data">3.1 Importing Geospatial Data</h3>
+<p>We will be importing the fellowing geospatial datasets in R by using <a href="https://r-spatial.github.io/sf/reference/st_read.html">st_read()</a> of sf package:</p>
+<ul>
+<li><p>The geoBoundaries Dataset</p></li>
+<li><p>The NGA data set</p></li>
+</ul>
+<section id="the-geoboundaries-dataset" class="level5">
+<h5 class="anchored" data-anchor-id="the-geoboundaries-dataset">3.1.1 The geoBoundaries Dataset</h5>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>geoNGA <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/geospatial/"</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">layer =</span> <span class="st">"geoBoundaries-NGA-ADM2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">26392</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `geoBoundaries-NGA-ADM2' from data source 
+  `C:\michellefaithl\is415-gaa-michellefaith\Take-home_Ex\data\geospatial' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 774 features and 6 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 2.668534 ymin: 4.273007 xmax: 14.67882 ymax: 13.89442
+Geodetic CRS:  WGS 84</code></pre>
+</div>
+</div>
+</section>
+<section id="the-nga-dataset" class="level5">
+<h5 class="anchored" data-anchor-id="the-nga-dataset">3.1.2 The NGA Dataset</h5>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>NGA <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/geospatial/"</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">layer =</span> <span class="st">"geoBoundaries-NGA-ADM2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">26392</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `geoBoundaries-NGA-ADM2' from data source 
+  `C:\michellefaithl\is415-gaa-michellefaith\Take-home_Ex\data\geospatial' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 774 features and 6 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 2.668534 ymin: 4.273007 xmax: 14.67882 ymax: 13.89442
+Geodetic CRS:  WGS 84</code></pre>
+</div>
+</div>
+<p>By examining both sf dataframe closely, we notice that NGA provide both LGA and state information. Hence, NGA data.frame will be used for the subsequent processing.</p>
+</section>
+</section>
+<section id="importing-geospatial-data-1" class="level3">
+<h3 class="anchored" data-anchor-id="importing-geospatial-data-1">3.2 Importing Geospatial Data</h3>
+<p>We will use <a href="https://readr.tidyverse.org/reference/read_delim.html">read_csv()</a> of readr package to import only water points within Nigeria.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>wp_nga <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/aspatial/WPdx.csv"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="st">`</span><span class="at">#clean_country_name</span><span class="st">`</span> <span class="sc">==</span> <span class="st">"Nigeria"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="converting-water-point-data-into-sf-point-features" class="level5">
+<h5 class="anchored" data-anchor-id="converting-water-point-data-into-sf-point-features">Converting water point data into sf point features</h5>
+<p>Converting an aspatial data into an sf data.frame involves two steps.</p>
+<p>First, we need to convert the <a href="https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry">wkt</a> field into sfc field by using st_as_sfc() data type.</p>
 
 
+</section>
+</section>
 </section>
 
 </main> <!-- /main -->
