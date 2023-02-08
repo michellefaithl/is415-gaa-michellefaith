@@ -124,4 +124,24 @@ wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
 
 Converting an aspatial data into an sf data.frame involves two steps.
 
-First, we need to convert the [wkt](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) field into sfc field by using st_as_sfc() data type.
+First, we need to convert the [wkt](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) field into sfc field by using `st_as_sfc()` data type.
+
+```{r}
+wp_nga$Geometry = st_as_sfc(wp_nga$`New Georeferenced Column`)
+wp_nga
+```
+
+Next, we will convert the tibble data.frame into an sf object by using `st_sf()`. It is also important for us to include the referencing system of the data into the sf object.
+
+```{r}
+wp_sf <- st_sf(wp_nga, crs=4326)
+wp_sf
+```
+
+
+
+
+
+
+
+
