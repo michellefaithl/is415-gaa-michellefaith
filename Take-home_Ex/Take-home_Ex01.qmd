@@ -79,15 +79,21 @@ The R packages we'll use for this analysis are:
 
 -   **raster**: reads, writes, manipulates, analyses and models gridded spatial data (e.g. raster-based geographical data)
 
+-   **funModeling**: covers common aspects in predictive modeling (e.g. data cleaning, variable importance analysis and assessing model performance)
+
+-   **sfdep**: performing geospatia data wrangling and local colocation quotient analysis
+
+-   **maptools**: maptools which provides a set of tools for manipulating geographic data. In this hands-on exercise, we mainly use it to convert Spatial objects into ppp format of spatstat.
+
 ```{r}
-pacman::p_load(sf, tidyverse, tmap, spatstat, raster, funModeling)
+pacman::p_load(tmap, tidyverse, sf, funModeling, sfdep, spatstat, maptools, raster)
 ```
 
 ## 3 Handling Geospatial Data
 
 ### 3.1 Importing Geospatial Data
 
-We will be importing the fellowing geospatial datasets in R by using [st_read()](https://r-spatial.github.io/sf/reference/st_read.html) of sf package:
+We will be importing the following geospatial datasets in R by using [st_read()](https://r-spatial.github.io/sf/reference/st_read.html) of sf package:
 
 -   The geoBoundaries Dataset
 
@@ -111,7 +117,7 @@ NGA <- st_read("data/geospatial/",
 
 By examining both sf dataframe closely, we notice that NGA provide both LGA and state information. Hence, NGA data.frame will be used for the subsequent processing.
 
-### 3.2 Importing Geospatial Data
+### 3.2 Importing Aspatial Data
 
 We will use [read_csv()](https://readr.tidyverse.org/reference/read_delim.html) of readr package to import only water points within Nigeria.
 
@@ -120,7 +126,7 @@ wp_nga <- read_csv("data/aspatial/WPdx.csv") %>%
   filter(`#clean_country_name` == "Nigeria")
 ```
 
-##### Converting water point data into sf point features
+##### 3.2.1 Converting water point data into sf point features
 
 Converting an aspatial data into an sf data.frame involves two steps.
 
@@ -138,7 +144,216 @@ wp_sf <- st_sf(wp_nga, crs=4326)
 wp_sf
 ```
 
+##### 3.2.2 Transforming the Nigeria projected coordinate system
 
+We will now transform the projection from wgs84 to an appropriate projected coordinate system of Nigeria.
+
+## 4 Data Wrangling for Water Point Data
+
+Exploratory Data Analysis (EDA) is a popular approach to gain initial understanding of the data. In the code chunk below, `freq()` of funModeling package is used to reveal the distribution of water point status visually.
+
+```{r}
+freq(data = wp_sf,
+     input = '#status_clean')
+```
+
+Figure above shows that there are nine classes in the `#status_clean` fields.
+
+Next, code chunk below will be used to perform the following data wrangling tasksP - `rename()` of dplyr package is used to rename the column from `#status_clean` to status_clean for easier handling in subsequent steps. - `select()` of dplyr is used to include status_clean in the output sf data.frame. - `mutate()` and `replace_na()` are used to recode all the NA values in `status_clean` into unknown.
+
+```{r}
+wp_sf_nga <- wp_sf %>% 
+  rename(status_clean = '#status_clean') %>%
+  select(status_clean) %>%
+  mutate(status_clean = replace_na(
+    status_clean, "unknown"))
+```
+
+### 4.1 Extracting Water Point Data
+
+Now we are ready to extract the water point data according to their status.
+
+The code chunk below is used to extract functional water point.
+
+```{r}
+wp_functional <- wp_sf_nga %>%
+  filter(status_clean %in%
+           c("Functional",
+             "Functional but not in use",
+             "Functional but needs repair"))
+```
+
+The code chunk below is used to extract nonfunctional water point.
+
+```{r}
+wp_nonfunctional <- wp_sf_nga %>%
+  filter(status_clean %in%
+           c("Abandoned/Decommissioned",
+             "Abandoned",
+             "Non-Functional due to dry season",
+             "Non-Functional",
+             "Non functional due to dry season"))
+```
+
+The code chunk below is used to extract water point with unknown status.
+
+```{r}
+wp_unknown <- wp_sf_nga %>%
+  filter(status_clean == "unknown")
+```
+
+Next, the code chunk below is used to perform a quick EDA on the derived sf data.frames.
+
+```{r}
+freq(data = wp_functional,
+     input = 'status_clean')
+```
+
+```{r}
+freq(data = wp_nonfunctional,
+     input = 'status_clean')
+```
+
+```{r}
+freq(data = wp_unknown,
+     input = 'status_clean')
+```
+
+### 4.2 Performing Point-in-Polygon Count
+
+Next, we want to find out the number of total, functional, nonfunctional and unknown water points in each LGA. This is performed in the following code chunk. First, it identifies the functional water points in each LGA by using `st_intersects()` of sf package. Next, `length()` is used to calculate the number of functional water points that fall inside each LGA.
+
+```{r}
+NGA_wp <- NGA %>% 
+  mutate(`total_wp` = lengths(
+    st_intersects(NGA, wp_sf_nga))) %>%
+  mutate(`wp_functional` = lengths(
+    st_intersects(NGA, wp_functional))) %>%
+  mutate(`wp_nonfunctional` = lengths(
+    st_intersects(NGA, wp_nonfunctional))) %>%
+  mutate(`wp_unknown` = lengths(
+    st_intersects(NGA, wp_unknown)))
+```
+
+Notice that four new derived fields have been added into *NGA_wp* sf data.frame.
+
+### 4.3 Visualing attributes by using statistical graphs
+
+In this code chunk below, appropriate functions of [ggplot2](https://ggplot2.tidyverse.org/) package is used to reveal the distribution of total water points by LGA in histogram.
+
+```{r}
+ggplot(data = NGA_wp,
+       aes(x = total_wp)) + 
+  geom_histogram(bins=20,
+                 color="black",
+                 fill="light blue") +
+  geom_vline(aes(xintercept=mean(
+    total_wp, na.rm=T)),
+             color="red", 
+             linetype="dashed", 
+             size=0.8) +
+  ggtitle("Distribution of total water points by LGA") +
+  xlab("No. of water points") +
+  ylab("No. of\nLGAs") +
+  theme(axis.title.y=element_text(angle = 0))
+```
+
+## 5 Exploratory Spatial Data Analysis (ESDA)
+
+### 5.1 Basic Choropleth Mapping
+
+##### 5.2.1 Visualising Distribution of Functional Water Point by LGA
+
+```{r}
+tmap_mode("view")
+p1 <- tm_shape(NGA_wp) +
+  tm_fill("wp_functional",
+          n = 10,
+          style = "equal",
+          palette = "Blues") +
+  tm_borders(lwd = 0.1,
+             alpha = 1) +
+  tm_layout(main.title = "Distribution of functional water point by LGAs",
+            legend.outside = FALSE)
+p1
+```
+
+
+##### 5.2.2 Visualising Distribution of Functional Water Point by LGA
+
+```{r}
+tmap_mode("view")
+p2 <- tm_shape(NGA_wp) +
+  tm_fill("wp_nonfunctional",
+          n = 10,
+          style = "equal",
+          palette = "Blues") +
+  tm_borders(lwd = 0.1,
+             alpha = 1) +
+  tm_layout(main.title = "Distribution of nonfunctional water point by LGAs",
+            legend.outside = FALSE)
+p2
+```
+
+### 5.2 Spatial Patterns from Kernel Density Maps
+The advantage of kernel density map over point map:
+-   better visualisation 
+-   summarises information of small zones compared to other zones 
+
+
+## 6 Second-order Spatial Point Patterns Analysis
+Spatial Point Pattern Analysis is the evaluation of the pattern or distribution, of a set of points on a surface, using appropriate functions of `spatstat`. The point can be location of:
+
+-   events such as crime, traffic accident and disease onset, or
+-   business services (coffee and fastfood outlets) or facilities such as childcare and eldercare.
+
+### 6.1 Spatial Data Wrangling
+
+##### 6.1.2 Mapping the Geospatial data sets
+This step is useful for us to plot a map to show their spatial patterns.
+
+```{r}
+tm_shape(wp_nonfunctional)+
+  tm_dots()
+
+```
+
+
+```{r}
+tmap_mode('plot')
+```
+
+
+Reminder: Always remember to switch back to plot mode after the interactive map. This is because, each interactive mode will consume a connection. You should also avoid displaying excessive numbers of interactive maps (i.e. not more than 10) in one RMarkdown document when publish on Netlify.
+
+### 6.2 Geospatial Data Wrangling
+
+##### 6.2.1 Converting sf data frames to sp’s Spatial* class
+The code chunk below uses as_Spatial() of **sf** package to convert the three geospatial data from simple feature data frame to sp’s Spatial* class.
+
+```{r}
+functional <- as_Spatial(wp_functional)
+nonfunctional <- as_Spatial(wp_nonfunctional)
+```
+
+```{r}
+functional
+```
+
+```{r}
+nonfunctional
+```
+
+Notice that the geospatial data have been converted into their respective sp’s Spatial* classes now.
+
+
+### 6.2 Analysing Spatial Point Process Using G-Function
+The G function measures the distribution of the distances from an arbitrary event to its nearest event. In this section, you will learn how to compute G-function estimation by using `Gest()` of **spatstat** package. You will also learn how to perform monta carlo simulation test using `envelope()` of **spatstat** package.
+
+##### 6.2.2 Functional Water Point
+
+###### 6.2.2.1 Computing G-function Estimation
+The code chunk below is used to compute G-function using *Gest()* of **spatat** package.
 
 
 

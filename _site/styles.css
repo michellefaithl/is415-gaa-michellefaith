@@ -17,9 +17,15 @@ h5 {
   font-family: calibri;
 }
 
+h6 {
+  font-size: 22px;
+  font-weight: normal;
+  font-family: calibri;
+}
+
 p {
   color: #5A5A5A;
-  font-size: 15px;
+  font-size: 20px;
   font-family: calibri;
 }
 
