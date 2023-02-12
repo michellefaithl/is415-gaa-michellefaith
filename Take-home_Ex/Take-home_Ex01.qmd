@@ -33,7 +33,7 @@ For the purpose of this assignment, data from [WPdx Global Data Repositories](ht
 
 Nigeria Level-2 Administrative Boundary (also known as Local Government Area) polygon features GIS data will be used in this take-home exercise. The data can be downloaded either from The [Humanitarian Data Exchange portal](https://data.humdata.org/) or [geoBoundaries](https://www.geoboundaries.org/).
 
-#### 1.4 The Task
+### 1.4 The Task
 
 The specific tasks of this take-home exercise are as follows:
 
@@ -81,12 +81,14 @@ The R packages we'll use for this analysis are:
 
 -   **funModeling**: covers common aspects in predictive modeling (e.g. data cleaning, variable importance analysis and assessing model performance)
 
--   **sfdep**: performing geospatia data wrangling and local colocation quotient analysis
+-   **sfdep**: performing geospatial data wrangling and local colocation quotient analysis
 
 -   **maptools**: maptools which provides a set of tools for manipulating geographic data. In this hands-on exercise, we mainly use it to convert Spatial objects into ppp format of spatstat.
 
 ```{r}
-pacman::p_load(tmap, tidyverse, sf, funModeling, sfdep, spatstat, maptools, raster)
+#pacman::p_load(tmap, tidyverse, sf, funModeling, sfdep, raster)
+
+pacman::p_load(tmap, tidyverse, sf, funModeling, sfdep)
 ```
 
 ## 3 Handling Geospatial Data
@@ -147,6 +149,14 @@ wp_sf
 ##### 3.2.2 Transforming the Nigeria projected coordinate system
 
 We will now transform the projection from wgs84 to an appropriate projected coordinate system of Nigeria.
+
+```{r}
+wp_sf <- wp_sf %>%
+  st_transform(crs = 26392)
+```
+
+
+
 
 ## 4 Data Wrangling for Water Point Data
 
@@ -278,7 +288,6 @@ p1 <- tm_shape(NGA_wp) +
 p1
 ```
 
-
 ##### 5.2.2 Visualising Distribution of Functional Water Point by LGA
 
 ```{r}
@@ -296,12 +305,11 @@ p2
 ```
 
 ### 5.2 Spatial Patterns from Kernel Density Maps
-The advantage of kernel density map over point map:
--   better visualisation 
--   summarises information of small zones compared to other zones 
 
+The advantage of kernel density map over point map: - better visualisation - summarises information of small zones compared to other zones
 
 ## 6 Second-order Spatial Point Patterns Analysis
+
 Spatial Point Pattern Analysis is the evaluation of the pattern or distribution, of a set of points on a surface, using appropriate functions of `spatstat`. The point can be location of:
 
 -   events such as crime, traffic accident and disease onset, or
@@ -310,6 +318,7 @@ Spatial Point Pattern Analysis is the evaluation of the pattern or distribution,
 ### 6.1 Spatial Data Wrangling
 
 ##### 6.1.2 Mapping the Geospatial data sets
+
 This step is useful for us to plot a map to show their spatial patterns.
 
 ```{r}
@@ -318,18 +327,17 @@ tm_shape(wp_nonfunctional)+
 
 ```
 
-
 ```{r}
 tmap_mode('plot')
 ```
-
 
 Reminder: Always remember to switch back to plot mode after the interactive map. This is because, each interactive mode will consume a connection. You should also avoid displaying excessive numbers of interactive maps (i.e. not more than 10) in one RMarkdown document when publish on Netlify.
 
 ### 6.2 Geospatial Data Wrangling
 
-##### 6.2.1 Converting sf data frames to sp’s Spatial* class
-The code chunk below uses as_Spatial() of **sf** package to convert the three geospatial data from simple feature data frame to sp’s Spatial* class.
+##### 6.2.1 Converting sf data frames to sp's Spatial\* class
+
+The code chunk below uses as_Spatial() of **sf** package to convert the three geospatial data from simple feature data frame to sp's Spatial\* class.
 
 ```{r}
 functional <- as_Spatial(wp_functional)
@@ -344,19 +352,14 @@ functional
 nonfunctional
 ```
 
-Notice that the geospatial data have been converted into their respective sp’s Spatial* classes now.
-
+Notice that the geospatial data have been converted into their respective sp's Spatial\* classes now.
 
 ### 6.2 Analysing Spatial Point Process Using G-Function
+
 The G function measures the distribution of the distances from an arbitrary event to its nearest event. In this section, you will learn how to compute G-function estimation by using `Gest()` of **spatstat** package. You will also learn how to perform monta carlo simulation test using `envelope()` of **spatstat** package.
 
 ##### 6.2.2 Functional Water Point
 
 ###### 6.2.2.1 Computing G-function Estimation
+
 The code chunk below is used to compute G-function using *Gest()* of **spatat** package.
-
-
-
-
-
-
