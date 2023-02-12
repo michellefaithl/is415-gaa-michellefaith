@@ -155,9 +155,6 @@ wp_sf <- wp_sf %>%
   st_transform(crs = 26392)
 ```
 
-
-
-
 ## 4 Data Wrangling for Water Point Data
 
 Exploratory Data Analysis (EDA) is a popular approach to gain initial understanding of the data. In the code chunk below, `freq()` of funModeling package is used to reveal the distribution of water point status visually.
@@ -317,6 +314,11 @@ Spatial Point Pattern Analysis is the evaluation of the pattern or distribution,
 
 ### 6.1 Spatial Data Wrangling
 
+```{r}
+pacman::p_load(maptools, raster, spatstat)
+```
+
+
 ##### 6.1.2 Mapping the Geospatial data sets
 
 This step is useful for us to plot a map to show their spatial patterns.
@@ -340,19 +342,43 @@ Reminder: Always remember to switch back to plot mode after the interactive map.
 The code chunk below uses as_Spatial() of **sf** package to convert the three geospatial data from simple feature data frame to sp's Spatial\* class.
 
 ```{r}
-functional <- as_Spatial(wp_functional)
-nonfunctional <- as_Spatial(wp_nonfunctional)
+functional_sp <- as_Spatial(wp_functional)
+nonfunctional_sp <- as_Spatial(wp_nonfunctional)
 ```
 
 ```{r}
-functional
+functional_sp
 ```
 
 ```{r}
-nonfunctional
+nonfunctional_sp
 ```
 
 Notice that the geospatial data have been converted into their respective sp's Spatial\* classes now.
+
+
+#### 6.2.2 Converting the generic sp format into spatstat’s ppp format
+Now, we will use `as.ppp()` function of **spatstat** to convert the spatial data into **spatstat**’s **ppp** object format.
+```{r}
+functional_ppp <-as(functional_sp, "ppp")
+functional_ppp
+```
+```{r}
+nonfunctional_ppp <-as(nonfunctional_sp, "ppp")
+nonfunctional_ppp
+```
+
+Now, let us plot functional_ppp and examine the difference.
+
+```{r}
+plot(functional_ppp)
+```
+
+You can take a quick look at the summary statistics of the newly created ppp object by using the code chunk below.
+
+```{r}
+summary(functional_ppp)
+```
 
 ### 6.2 Analysing Spatial Point Process Using G-Function
 
@@ -362,4 +388,30 @@ The G function measures the distribution of the distances from an arbitrary even
 
 ###### 6.2.2.1 Computing G-function Estimation
 
-The code chunk below is used to compute G-function using *Gest()* of **spatat** package.
+The code chunk below is used to compute G-function using *Gest()* of **spatstat** package.
+
+```{r}
+G_CK = Gest(functional_ppp, correction = "border")
+plot(G_CK, xlim=c(0,500))
+```
+
+###### 6.2.2.2 Performing Complete Spatial Randomness Test
+To confirm the observed spatial patterns above, a hypothesis test will be conducted. The hypothesis and test are as follows:
+
+Ho = The distribution of Functional Water Point are randomly distributed.
+
+H1= The distribution of Functional Water Point are not randomly distributed.
+
+The null hypothesis will be rejected if p-value is smaller than alpha value of 0.001.
+
+Monte Carlo test with G-fucntion.
+
+```{r}
+G_CK.csr <- envelope(functional_ppp, Gest, nsim = 999)
+```
+
+```{r}
+plot(G_CK.csr)
+```
+
+
