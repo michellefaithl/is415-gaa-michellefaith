@@ -446,3 +446,113 @@ plot(L_nf.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 
 The plot above reveals that the are signs that the distribution of Non-Functional Water Point are not randomly distributed. Unfortunately, we failed to reject the null hypothesis because the empirical k-cross line is within the envelop of the 95% confident interval.
 
+## 7 Spatial Correlation Analysis
+In this section, we will confirm statistically if the spatial distribution of functional and non-functional water points are independent from each other.
+
+### 7.1  Local Colocation Quotient Analysis (LCLQ)
+
+##### 7.1.1 Visualising the sf layers
+Using the appropriate functions of `tmap`, we will be able to view the functional and non-functional water points on a single map.
+
+```{r}
+tmap_mode("view")
+tm_shape(NGA_wp) +
+  tm_polygons() +
+tm_shape(wp_sf_nga)+ 
+  tm_dots(col = "status_clean",
+             size = 0.01,
+             border.col = "black",
+             border.lwd = 0.5) +
+  tm_view(set.zoom.limits = c(5, 16))
+```
+
+```{r}
+tmap_mode('plot')
+```
+
+Notice that there are many categories for water point. For this exercise, we will have to combine all functional water point and non-functional water point into their own categories.
+
+First, we will duplicate *status_clean* column.
+```{r}
+wp_sf_nga$category <- wp_sf_nga$status_clean
+wp_sf_nga
+```
+
+Next, we will have to change the value of "Functional but not in use" and "Functional but needs repair" into *Functional*.
+
+```{r}
+wp_sf_nga$category[wp_sf_nga$category == "Functional but not in use"] <- "Functional"
+wp_sf_nga$category[wp_sf_nga$category == "Functional but needs repair"] <- "Functional"
+```
+
+Next, we will do the same for Non-functional.
+```{r}
+wp_sf_nga$category[wp_sf_nga$category == "Abandoned/Decommissioned"] <- "Non-Functional"
+wp_sf_nga$category[wp_sf_nga$category == "Abandoned"] <- "Non-Functional"
+wp_sf_nga$category[wp_sf_nga$category == "Non-Functional due to dry season"] <- "Non-Functional"
+wp_sf_nga$category[wp_sf_nga$category == "Non functional due to dry season"] <- "Non-Functional"
+```
+
+We will run tmap again to view the data.
+```{r}
+tmap_mode("view")
+tm_shape(NGA_wp) +
+  tm_polygons() +
+tm_shape(wp_sf_nga)+ 
+  tm_dots(col = "category",
+             size = 0.01,
+             border.col = "black",
+             border.lwd = 0.5) +
+  tm_view(set.zoom.limits = c(5, 16))
+```
+
+```{r}
+tmap_mode('plot')
+```
+
+##### 7.1.2 Preparing nearest Neighbours List
+In the code chunk below, `st_knn()` of **sfdep** package is used to determine the k (i.e. 6) nearest neighbours for given point geometry.
+
+```{r}
+nb <- include_self(
+  st_knn(st_geometry(wp_sf_nga), 6))
+```
+
+##### 7.1.3 Computing Kernal Weights
+In the code chunk below, `st_kernel_weights()` of **sfdep** package is used to derive a weights list by using a kernel function.
+
+```{r}
+wt <- st_kernel_weights(nb, 
+                        wp_sf_nga, 
+                        "gaussian", 
+                        adaptive = TRUE)
+```
+
+For this to work:
+-   an object of class nb e.g. created by using either `st_contiguity()` or `st_knn()` is required.
+-   The supported kernel methods are: “uniform”, “gaussian”, “triangular”, “epanechnikov”, or “quartic”.
+
+##### 7.1.4 Preparing the Vector List
+To compute LCLQ by using **sfdep** package, the reference point data must be in either character or vector list. The code chunks below are used to prepare two vector lists. One of Functional and for Non-Functional and are called A and B respectively.
+
+```{r}
+functional <- wp_sf_nga %>%
+  filter(category == "Functional")
+A <- functional$category
+```
+
+```{r}
+non_functional <- wp_sf_nga %>%
+  filter(category == "Non-Functional")
+B <- non_functional$category
+```
+
+
+
+
+
+
+
+
+
+
