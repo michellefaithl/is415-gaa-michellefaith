@@ -319,7 +319,7 @@ pacman::p_load(maptools, raster, spatstat)
 ```
 
 
-##### 6.1.2 Mapping the Geospatial data sets
+##### 6.1.1 Mapping the Geospatial data sets
 
 This step is useful for us to plot a map to show their spatial patterns.
 
@@ -357,7 +357,7 @@ nonfunctional_sp
 Notice that the geospatial data have been converted into their respective sp's Spatial\* classes now.
 
 
-#### 6.2.2 Converting the generic sp format into spatstat’s ppp format
+##### 6.2.2 Converting the generic sp format into spatstat’s ppp format
 Now, we will use `as.ppp()` function of **spatstat** to convert the spatial data into **spatstat**’s **ppp** object format.
 ```{r}
 functional_ppp <-as(functional_sp, "ppp")
@@ -380,22 +380,21 @@ You can take a quick look at the summary statistics of the newly created ppp obj
 summary(functional_ppp)
 ```
 
-### 6.2 Analysing Spatial Point Process Using G-Function
+### 6.3 Analysing Spatial Point Process Using L-Function
+In this section, you will learn how to compute L-function estimation by using *Lest()* of **spatstat** package. You will also learn how to perform monta carlo simulation test using envelope() of spatstat package.
 
-The G function measures the distribution of the distances from an arbitrary event to its nearest event. In this section, you will learn how to compute G-function estimation by using `Gest()` of **spatstat** package. You will also learn how to perform monta carlo simulation test using `envelope()` of **spatstat** package.
 
-##### 6.2.2 Functional Water Point
+##### 6.3.1 Functional Water Point
 
-###### 6.2.2.1 Computing G-function Estimation
-
-The code chunk below is used to compute G-function using *Gest()* of **spatstat** package.
-
+###### 6.3.1.1 Computing L-Function Estimation 
 ```{r}
-G_CK = Gest(functional_ppp, correction = "border")
-plot(G_CK, xlim=c(0,500))
+L_f = Lest(functional_ppp, correction = "Ripley")
+plot(L_f, . -r ~ r, 
+     ylab= "L(d)-r", xlab = "d(m)")
 ```
+The plot above reveals that there is a sign that the distribution of Functional Water Point are not randomly distributed. However, a hypothesis test is required to confirm the observation statistically.
 
-###### 6.2.2.2 Performing Complete Spatial Randomness Test
+###### 6.3.1.2 Performing Complete Spatial Randomness Test
 To confirm the observed spatial patterns above, a hypothesis test will be conducted. The hypothesis and test are as follows:
 
 Ho = The distribution of Functional Water Point are randomly distributed.
@@ -404,14 +403,46 @@ H1= The distribution of Functional Water Point are not randomly distributed.
 
 The null hypothesis will be rejected if p-value is smaller than alpha value of 0.001.
 
-Monte Carlo test with G-fucntion.
+Monte Carlo test with L-function.
 
 ```{r}
-G_CK.csr <- envelope(functional_ppp, Gest, nsim = 999)
+L_f.csr = envelope(functional_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
+```
+```{r}
+plot(L_f.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
+```
+The plot above reveals that the are signs that the distribution of Functional Water Point are not randomly distributed. Unfortunately, we failed to reject the null hypothesis because the empirical k-cross line is within the envelop of the 95% confident interval.
+
+
+##### 6.3.2 Non-Functional Water Point
+
+###### 6.3.2.1 Computing L-Function Estimation 
+```{r}
+L_nf = Lest(nonfunctional_ppp, correction = "Ripley")
+plot(L_nf, . -r ~ r, 
+     ylab= "L(d)-r", xlab = "d(m)")
+```
+
+The plot above reveals that there is a sign that the distribution of Non-Functional Water Point are not randomly distributed. However, a hypothesis test is required to confirm the observation statistically.
+
+###### 6.3.2.2 Performing Complete Spatial Randomness Test
+To confirm the observed spatial patterns above, a hypothesis test will be conducted. The hypothesis and test are as follows:
+
+Ho = The distribution of Non-Functional Water Point are randomly distributed.
+
+H1= The distribution of Non-Functional Water Point are not randomly distributed.
+
+The null hypothesis will be rejected if p-value is smaller than alpha value of 0.001.
+
+Monte Carlo test with L-function.
+
+```{r}
+L_nf.csr = envelope(nonfunctional_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
 ```
 
 ```{r}
-plot(G_CK.csr)
+plot(L_nf.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ```
 
+The plot above reveals that the are signs that the distribution of Non-Functional Water Point are not randomly distributed. Unfortunately, we failed to reject the null hypothesis because the empirical k-cross line is within the envelop of the 95% confident interval.
 
