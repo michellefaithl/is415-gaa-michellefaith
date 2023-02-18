@@ -285,6 +285,10 @@ p1 <- tm_shape(NGA_wp) +
 p1
 ```
 
+```{r}
+tmap_mode('plot')
+```
+
 ##### 5.2.2 Visualising Distribution of Functional Water Point by LGA
 
 ```{r}
@@ -299,6 +303,10 @@ p2 <- tm_shape(NGA_wp) +
   tm_layout(main.title = "Distribution of nonfunctional water point by LGAs",
             legend.outside = FALSE)
 p2
+```
+
+```{r}
+tmap_mode('plot')
 ```
 
 ### 5.2 Spatial Patterns from Kernel Density Maps
@@ -317,7 +325,6 @@ Spatial Point Pattern Analysis is the evaluation of the pattern or distribution,
 ```{r}
 pacman::p_load(maptools, raster, spatstat)
 ```
-
 
 ##### 6.1.1 Mapping the Geospatial data sets
 
@@ -356,13 +363,15 @@ nonfunctional_sp
 
 Notice that the geospatial data have been converted into their respective sp's Spatial\* classes now.
 
+##### 6.2.2 Converting the generic sp format into spatstat's ppp format
 
-##### 6.2.2 Converting the generic sp format into spatstat’s ppp format
-Now, we will use `as.ppp()` function of **spatstat** to convert the spatial data into **spatstat**’s **ppp** object format.
+Now, we will use `as.ppp()` function of **spatstat** to convert the spatial data into **spatstat**'s **ppp** object format.
+
 ```{r}
 functional_ppp <-as(functional_sp, "ppp")
 functional_ppp
 ```
+
 ```{r}
 nonfunctional_ppp <-as(nonfunctional_sp, "ppp")
 nonfunctional_ppp
@@ -381,20 +390,23 @@ summary(functional_ppp)
 ```
 
 ### 6.3 Analysing Spatial Point Process Using L-Function
-In this section, you will learn how to compute L-function estimation by using *Lest()* of **spatstat** package. You will also learn how to perform monta carlo simulation test using envelope() of spatstat package.
 
+In this section, you will learn how to compute L-function estimation by using *Lest()* of **spatstat** package. You will also learn how to perform monta carlo simulation test using envelope() of spatstat package.
 
 ##### 6.3.1 Functional Water Point
 
-###### 6.3.1.1 Computing L-Function Estimation 
+###### 6.3.1.1 Computing L-Function Estimation
+
 ```{r}
 L_f = Lest(functional_ppp, correction = "Ripley")
 plot(L_f, . -r ~ r, 
      ylab= "L(d)-r", xlab = "d(m)")
 ```
+
 The plot above reveals that there is a sign that the distribution of Functional Water Point are not randomly distributed. However, a hypothesis test is required to confirm the observation statistically.
 
 ###### 6.3.1.2 Performing Complete Spatial Randomness Test
+
 To confirm the observed spatial patterns above, a hypothesis test will be conducted. The hypothesis and test are as follows:
 
 Ho = The distribution of Functional Water Point are randomly distributed.
@@ -408,15 +420,17 @@ Monte Carlo test with L-function.
 ```{r}
 L_f.csr = envelope(functional_ppp, Lest, nsim = 39, rank = 1, glocal=TRUE)
 ```
+
 ```{r}
 plot(L_f.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 ```
-The plot above reveals that the are signs that the distribution of Functional Water Point are not randomly distributed. Unfortunately, we failed to reject the null hypothesis because the empirical k-cross line is within the envelop of the 95% confident interval.
 
+The plot above reveals that the are signs that the distribution of Functional Water Point are not randomly distributed. Unfortunately, we failed to reject the null hypothesis because the empirical k-cross line is within the envelop of the 95% confident interval.
 
 ##### 6.3.2 Non-Functional Water Point
 
-###### 6.3.2.1 Computing L-Function Estimation 
+###### 6.3.2.1 Computing L-Function Estimation
+
 ```{r}
 L_nf = Lest(nonfunctional_ppp, correction = "Ripley")
 plot(L_nf, . -r ~ r, 
@@ -426,6 +440,7 @@ plot(L_nf, . -r ~ r,
 The plot above reveals that there is a sign that the distribution of Non-Functional Water Point are not randomly distributed. However, a hypothesis test is required to confirm the observation statistically.
 
 ###### 6.3.2.2 Performing Complete Spatial Randomness Test
+
 To confirm the observed spatial patterns above, a hypothesis test will be conducted. The hypothesis and test are as follows:
 
 Ho = The distribution of Non-Functional Water Point are randomly distributed.
@@ -447,14 +462,16 @@ plot(L_nf.csr, . - r ~ r, xlab="d", ylab="L(d)-r")
 The plot above reveals that the are signs that the distribution of Non-Functional Water Point are not randomly distributed. Unfortunately, we failed to reject the null hypothesis because the empirical k-cross line is within the envelop of the 95% confident interval.
 
 ## 7 Spatial Correlation Analysis
+
 In this section, we will confirm statistically if the spatial distribution of functional and non-functional water points are independent from each other.
 
-### 7.1  Local Colocation Quotient Analysis (LCLQ)
+### 7.1 Local Colocation Quotient Analysis (LCLQ)
 
 ##### 7.1.1 Visualising the sf layers
+
 Using the appropriate functions of `tmap`, we will be able to view the functional and non-functional water points on a single map.
 
-```{r}
+```{r eval=FALSE}
 tmap_mode("view")
 tm_shape(NGA_wp) +
   tm_polygons() +
@@ -466,13 +483,12 @@ tm_shape(wp_sf_nga)+
   tm_view(set.zoom.limits = c(5, 16))
 ```
 
-```{r}
-tmap_mode('plot')
-```
+![](7-1.PNG)
 
 Notice that there are many categories for water point. For this exercise, we will have to combine all functional water point and non-functional water point into their own categories.
 
 First, we will duplicate *status_clean* column.
+
 ```{r}
 wp_sf_nga$category <- wp_sf_nga$status_clean
 wp_sf_nga
@@ -486,6 +502,7 @@ wp_sf_nga$category[wp_sf_nga$category == "Functional but needs repair"] <- "Func
 ```
 
 Next, we will do the same for Non-functional.
+
 ```{r}
 wp_sf_nga$category[wp_sf_nga$category == "Abandoned/Decommissioned"] <- "Non-Functional"
 wp_sf_nga$category[wp_sf_nga$category == "Abandoned"] <- "Non-Functional"
@@ -494,7 +511,8 @@ wp_sf_nga$category[wp_sf_nga$category == "Non functional due to dry season"] <- 
 ```
 
 We will run tmap again to view the data.
-```{r}
+
+```{r eval=FALSE}
 tmap_mode("view")
 tm_shape(NGA_wp) +
   tm_polygons() +
@@ -506,11 +524,10 @@ tm_shape(wp_sf_nga)+
   tm_view(set.zoom.limits = c(5, 16))
 ```
 
-```{r}
-tmap_mode('plot')
-```
+![](7-1-2.PNG)
 
 ##### 7.1.2 Preparing nearest Neighbours List
+
 In the code chunk below, `st_knn()` of **sfdep** package is used to determine the k (i.e. 6) nearest neighbours for given point geometry.
 
 ```{r}
@@ -519,6 +536,7 @@ nb <- include_self(
 ```
 
 ##### 7.1.3 Computing Kernal Weights
+
 In the code chunk below, `st_kernel_weights()` of **sfdep** package is used to derive a weights list by using a kernel function.
 
 ```{r}
@@ -528,11 +546,10 @@ wt <- st_kernel_weights(nb,
                         adaptive = TRUE)
 ```
 
-For this to work:
--   an object of class nb e.g. created by using either `st_contiguity()` or `st_knn()` is required.
--   The supported kernel methods are: “uniform”, “gaussian”, “triangular”, “epanechnikov”, or “quartic”.
+For this to work: - an object of class nb e.g. created by using either `st_contiguity()` or `st_knn()` is required. - The supported kernel methods are: "uniform", "gaussian", "triangular", "epanechnikov", or "quartic".
 
 ##### 7.1.4 Preparing the Vector List
+
 To compute LCLQ by using **sfdep** package, the reference point data must be in either character or vector list. The code chunks below are used to prepare two vector lists. One of Functional and for Non-Functional and are called A and B respectively.
 
 ```{r}
@@ -546,13 +563,3 @@ non_functional <- wp_sf_nga %>%
   filter(category == "Non-Functional")
 B <- non_functional$category
 ```
-
-
-
-
-
-
-
-
-
-
