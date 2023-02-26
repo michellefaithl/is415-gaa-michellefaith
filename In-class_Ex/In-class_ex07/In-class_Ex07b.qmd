@@ -59,7 +59,7 @@ GDPPC_st <- spacetime(GDPPC, hunan,
                       .time_col = "Year")
 ```
 
-Next, `is_spacetime_cube()` of sfdep package will be used to varify if GDPPC_st is indeed an space-time cube object.
+Next, `is_spacetime_cube()` of sfdep package will be used to verify if GDPPC_st is indeed an space-time cube object.
 
 
 
