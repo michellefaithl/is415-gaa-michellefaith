@@ -276,6 +276,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#visualisng-hot-spot-and-cold-spot-areas" id="toc-visualisng-hot-spot-and-cold-spot-areas" class="nav-link" data-scroll-target="#visualisng-hot-spot-and-cold-spot-areas">7.2 Visualisng Hot Spot and Cold Spot Areas</a></li>
   <li><a href="#observations-from-gi-maps" id="toc-observations-from-gi-maps" class="nav-link" data-scroll-target="#observations-from-gi-maps">7.3 Observations from Gi* Maps</a></li>
   </ul></li>
+  <li><a href="#emerging-hot-spot-analysis-ehsa-sfdep-methods" id="toc-emerging-hot-spot-analysis-ehsa-sfdep-methods" class="nav-link" data-scroll-target="#emerging-hot-spot-analysis-ehsa-sfdep-methods">8.0 Emerging Hot Spot Analysis (EHSA): sfdep methods</a>
+  <ul class="collapse">
+  <li><a href="#creating-a-time-series-cube" id="toc-creating-a-time-series-cube" class="nav-link" data-scroll-target="#creating-a-time-series-cube">8.1 Creating a Time Series Cube</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -361,6 +365,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><p><strong>kableExtra</strong>: an extension of kable, used for table customisation</p></li>
 <li><p><strong>plyr</strong>: used for splitting data, applying functions and combining results</p></li>
 <li><p><strong>sfdep</strong>: An interface to ‘spdep’ to integrate with ‘sf’ objects and the ‘tidyverse’</p></li>
+<li><p><strong>plotly</strong>: contain interactive elements that allow users to modify, explore, and experience the visualized data in new ways.</p></li>
 </ul>
 <p>In addition, the following tidyverse packages will be used:</p>
 <ul>
@@ -374,7 +379,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># initialise a list of required packages</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># note that 'readxl' is in the list of packages despite being part of tidyverse: as readxl is not a core tidyverse package, it needs to be loaded explicitly</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>packages <span class="ot">=</span> <span class="fu">c</span>(<span class="st">'plyr'</span>, <span class="st">'sf'</span>, <span class="st">'sfdep'</span>, <span class="st">'tidyverse'</span>, <span class="st">'readxl'</span>, <span class="st">'tmap'</span>, <span class="st">'maptools'</span>, <span class="st">'kableExtra'</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>packages <span class="ot">=</span> <span class="fu">c</span>(<span class="st">'plyr'</span>, <span class="st">'sf'</span>, <span class="st">'sfdep'</span>, <span class="st">'tidyverse'</span>, <span class="st">'readxl'</span>, <span class="st">'tmap'</span>, <span class="st">'maptools'</span>, <span class="st">'kableExtra'</span>, <span class="st">'plotly'</span>, <span class="st">'zoo'</span>)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># for each package, check if installed and if not, install it</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (p <span class="cf">in</span> packages){</span>
@@ -719,7 +724,8 @@ $ `TENAGA KESEHATAN TOTAL\r\nVAKSIN DIBERIKAN` &lt;dbl&gt; 138724, 194, 171, 394
 <li><p>SASARAN (target)</p></li>
 <li><p>BELUM VAKSIN (yet to be vaccinated)</p></li>
 </ul>
-<p>Now that we know our requirements, we can do this step-by-step: - importing all the files into one df, - retaining the necessary columns (and deleting duplicate columns), - adding the date column. Alternatively, we can combine all of these into a function!</p>
+<p>Now that we know our requirements, we can do this step-by-step: - importing all the files into one df, - retaining the necessary columns (and deleting duplicate columns), - adding the date and year columns.</p>
+<p>Alternatively, we can combine all of these into a function!</p>
 <div class="cell">
 <details>
 <summary>Show the code</summary>
@@ -739,17 +745,23 @@ $ `TENAGA KESEHATAN TOTAL\r\nVAKSIN DIBERIKAN` &lt;dbl&gt; 138724, 194, 171, 394
 <span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>  endpoint <span class="ot">&lt;-</span> <span class="fu">gregexpr</span>(<span class="at">pattern=</span><span class="st">")"</span>, filepath)[[<span class="dv">1</span>]] <span class="sc">-</span> <span class="dv">1</span></span>
 <span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>  result_file<span class="sc">$</span>Date <span class="ot">&lt;-</span> <span class="fu">substr</span>(filepath, startpoint, endpoint)</span>
 <span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Retain the Relevant Columns</span></span>
-<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>  result_file <span class="ot">&lt;-</span> result_file <span class="sc">%&gt;%</span> </span>
-<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="st">"Date"</span>, </span>
-<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>           <span class="st">"KODE KELURAHAN"</span>, </span>
-<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>           <span class="st">"WILAYAH KOTA"</span>, </span>
-<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>           <span class="st">"KECAMATAN"</span>,</span>
-<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>           <span class="st">"KELURAHAN"</span>,</span>
-<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>           <span class="st">"SASARAN"</span>,</span>
-<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>           <span class="st">"BELUM VAKSIN"</span>)</span>
-<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(result_file)</span>
-<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create the Year Column</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>  startpoint <span class="ot">&lt;-</span> <span class="fu">gregexpr</span>(<span class="at">pattern=</span><span class="st">")"</span>, filepath)[[<span class="dv">1</span>]] <span class="sc">-</span> <span class="dv">4</span></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>  endpoint <span class="ot">&lt;-</span> <span class="fu">gregexpr</span>(<span class="at">pattern=</span><span class="st">")"</span>, filepath)[[<span class="dv">1</span>]] <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>  result_file<span class="sc">$</span>Year <span class="ot">&lt;-</span> <span class="fu">strtoi</span>(<span class="fu">substr</span>(filepath, startpoint, endpoint))</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Retain the Relevant Columns</span></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>  result_file <span class="ot">&lt;-</span> result_file <span class="sc">%&gt;%</span> </span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="st">"Date"</span>, </span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>           <span class="st">"Year"</span>,</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>           <span class="st">"KODE KELURAHAN"</span>, </span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>           <span class="st">"WILAYAH KOTA"</span>, </span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>           <span class="st">"KECAMATAN"</span>,</span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>           <span class="st">"KELURAHAN"</span>,</span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>           <span class="st">"SASARAN"</span>,</span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>           <span class="st">"BELUM VAKSIN"</span>)</span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(result_file)</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -777,8 +789,9 @@ $ `TENAGA KESEHATAN TOTAL\r\nVAKSIN DIBERIKAN` &lt;dbl&gt; 138724, 194, 171, 394
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(cases_jakarta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rows: 3,216
-Columns: 7
+Columns: 8
 $ Date           &lt;chr&gt; "01 Agustus 2021", "01 Agustus 2021", "01 Agustus 2021"…
+$ Year           &lt;int&gt; 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2…
 $ KODE.KELURAHAN &lt;chr&gt; NA, "3172051003", "3173041007", "3175041005", "31750310…
 $ WILAYAH.KOTA   &lt;chr&gt; NA, "JAKARTA UTARA", "JAKARTA BARAT", "JAKARTA TIMUR", …
 $ KECAMATAN      &lt;chr&gt; NA, "PADEMANGAN", "TAMBORA", "KRAMAT JATI", "JATINEGARA…
@@ -814,8 +827,9 @@ $ BELUM.VAKSIN   &lt;dbl&gt; 4399496, 12155, 13727, 18226, 4987, 13716, 10232, 9
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rows: 3,216
-Columns: 7
+Columns: 8
 $ Date           &lt;date&gt; 2021-08-01, 2021-08-01, 2021-08-01, 2021-08-01, 2021-0~
+$ Year           &lt;int&gt; 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2~
 $ KODE.KELURAHAN &lt;chr&gt; NA, "3172051003", "3173041007", "3175041005", "31750310~
 $ WILAYAH.KOTA   &lt;chr&gt; NA, "JAKARTA UTARA", "JAKARTA BARAT", "JAKARTA TIMUR", ~
 $ KECAMATAN      &lt;chr&gt; NA, "PADEMANGAN", "TAMBORA", "KRAMAT JATI", "JATINEGARA~
@@ -853,19 +867,19 @@ $ BELUM.VAKSIN   &lt;dbl&gt; 4399496, 12155, 13727, 18226, 4987, 13716, 10232, 9
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># returns rows that contain NA values</span></span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>cases_jakarta[<span class="fu">rowSums</span>(<span class="fu">is.na</span>(cases_jakarta))<span class="sc">!=</span><span class="dv">0</span>,]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>           Date Village_Code City District Sub_District  Target
-1    2021-08-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-269  2022-04-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-537  2021-12-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-805  2022-02-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-1073 2022-01-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-1341 2021-07-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 7739060
-1609 2022-06-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-1877 2022-03-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-2145 2022-05-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-2413 2021-11-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-2681 2021-10-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
-2949 2021-09-01         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+<pre><code>           Date Year Village_Code City District Sub_District  Target
+1    2021-08-01 2021         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+269  2022-04-01 2022         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+537  2021-12-01 2021         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+805  2022-02-01 2022         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+1073 2022-01-01 2022         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+1341 2021-07-01 2021         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 7739060
+1609 2022-06-01 2022         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+1877 2022-03-01 2022         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+2145 2022-05-01 2022         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+2413 2021-11-01 2021         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+2681 2021-10-01 2021         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
+2949 2021-09-01 2021         &lt;NA&gt; &lt;NA&gt;     &lt;NA&gt;        TOTAL 8941211
      To_Be_Vaccinated
 1             4399496
 269           1481006
@@ -909,8 +923,8 @@ $ BELUM.VAKSIN   &lt;dbl&gt; 4399496, 12155, 13727, 18226, 4987, 13716, 10232, 9
 <div class="cell">
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(cases_jakarta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Date"             "Village_Code"     "City"             "District"        
-[5] "Sub_District"     "Target"           "To_Be_Vaccinated"</code></pre>
+<pre><code>[1] "Date"             "Year"             "Village_Code"     "City"            
+[5] "District"         "Sub_District"     "Target"           "To_Be_Vaccinated"</code></pre>
 </div>
 </div>
 <p>From this, <em>Village_Code</em>, <em>District</em>, <em>City</em> and <em>“Village</em> should match up. Let’s try doing that first.</p>
@@ -927,8 +941,9 @@ $ BELUM.VAKSIN   &lt;dbl&gt; 4399496, 12155, 13727, 18226, 4987, 13716, 10232, 9
 <div class="cell-output cell-output-stdout">
 <pre><code> [1] "Object_ID"        "Village_Code.x"   "Village"          "Code"            
  [5] "Province"         "City.x"           "District.x"       "Sub_District"    
- [9] "Total_Population" "Date"             "Village_Code.y"   "City.y"          
-[13] "District.y"       "Target"           "To_Be_Vaccinated" "geometry"        </code></pre>
+ [9] "Total_Population" "Date"             "Year"             "Village_Code.y"  
+[13] "City.y"           "District.y"       "Target"           "To_Be_Vaccinated"
+[17] "geometry"        </code></pre>
 </div>
 </div>
 <p>Now, let’s visualise our current combined_jakarta in terms of Target:</p>
@@ -951,157 +966,24 @@ $ BELUM.VAKSIN   &lt;dbl&gt; 4399496, 12155, 13727, 18226, 4987, 13716, 10232, 9
 <h3 class="anchored" data-anchor-id="identifying-mismatched-district-records">5.2 Identifying Mismatched District Records</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># checks for unique values of District in cases_jakarta that aren't already present in bd_jakarta and vice versa</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>cases_subdistrict <span class="ot">&lt;-</span> <span class="fu">c</span>(cases_jakarta<span class="sc">$</span>Village)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>cases_subdistrict <span class="ot">&lt;-</span> <span class="fu">c</span>(cases_jakarta<span class="sc">$</span>Sub_District)</span>
 <span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>bd_subdistrict <span class="ot">&lt;-</span> <span class="fu">c</span>(bd_jakarta<span class="sc">$</span>Sub_District)</span>
 <span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(cases_subdistrict[<span class="sc">!</span>(cases_subdistrict <span class="sc">%in%</span> bd_subdistrict)])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  [1] "3172051003" "3173041007" "3175041005" "3175031003" "3175101006"
-  [6] "3174031002" "3175051002" "3175041004" "3171071002" "3175031002"
- [11] "3174101002" "3174011005" "3171041006" "3175061007" "3175061004"
- [16] "3175041007" "3175101008" "3171031006" "3171051002" "3171051001"
- [21] "3173011001" "3173011006" "3175091002" "3171011002" "3174091003"
- [26] "3175051003" "3171061003" "3174081006" "3174061001" "3174041003"
- [31] "3175101002" "3175041006" "3172041001" "3175101001" "3174091006"
- [36] "3174061005" "3174071010" "3175021003" "3175031007" "3175031008"
- [41] "3175031005" "3175081005" "3175031006" "3174051003" "3175091001"
- [46] "3175041003" "3175071001" "3174081004" "3173051005" "3173011002"
- [51] "3171011006" "3173041011" "3173041003" "3171081003" "3171011001"
- [56] "3174061004" "3174071009" "3175051001" "3171071001" "3173031007"
- [61] "3171061004" "3173021001" "3174051005" "3174051004" "3174021007"
- [66] "3174071002" "3171031005" "3171021004" "3175081004" "3171031003"
- [71] "3174091001" "3175021007" "3174041002" "3173071004" "3175061001"
- [76] "3175021004" "3173021004" "3173021006" "3173041006" "3173041008"
- [81] "3173081005" "3171081001" "3173041002" "3172041004" "3174081002"
- [86] "3173061001" "3175051004" "3173061004" "3172011002" "3171071007"
- [91] "3175031001" "3171081002" "3175041002" "3173011005" "3172011003"
- [96] "3171021002" "3174021004" "3174021003" "3174021002" "3171071003"
-[101] "3171021003" "3175011003" "3175021006" "3173031006" "3174041007"
-[106] "3174051006" "3174051001" "3174011004" "3172021005" "3173051001"
-[111] "3171071006" "3171011005" "3171031002" "3175011005" "3171071005"
-[116] "3175081003" "3171061005" "3173011004" "3173051007" "3173051006"
-[121] "3173051004" "3175091003" "3172061003" "3172061001" "3173071005"
-[126] "3171031001" "3173081006" "3173081001" "3171041002" "3173041005"
-[131] "3175071003" "3172031001" "3173071006" "3173071003" "3171041004"
-[136] "3175041001" "3174071003" "3173031002" "3174031005" "3174021008"
-[141] "3171041005" "3172031003" "3174061002" "3174091004" "3175101007"
-[146] "3175081001" "3175071006" "3175071005" "3174031001" "3173031005"
-[151] "3171021005" "3174011007" "3174011006" "3173031003" "3172041003"
-[156] "3174071001" "3171061001" "3174021005" "3174011003" "3173081003"
-[161] "3173081002" "3175101004" "3172051002" "3172051001" "3175011004"
-[166] "3173071001" "3174081001" "3172021003" "3171021001" "3174021006"
-[171] "3174041001" "3171041003" "3173061005" "3171061002" "3172061002"
-[176] "3172011004" "3174041006" "3174041005" "3175051005" "3173041009"
-[181] "3174031003" "3174081005" "3175061003" "3172011001" "3174101001"
-[186] "3171071004" "3174071008" "3171011004" "3171011003" "3174101004"
-[191] "3174101003" "3175081002" "3173031008" "3175011001" "3175021002"
-[196] "3172011005" "3175071002" "3175071004" "3175071007" "3174061003"
-[201] "3174051002" "3175101003" "3101011003" "3101011002" "3101011001"
-[206] "3101021003" "3101021002" "3101021001" "3174071007" "3175021001"
-[211] "3175061005" "3174041004" "3175091005" "3172031006" "3172031004"
-[216] "3174071005" "3173011003" "3175031004" "3174081003" "3175061002"
-[221] "3175021005" "3171051003" "3173041010" "3172041006" "3174071004"
-[226] "3173061002" "3172041007" "3172041005" "3174071006" "3171041001"
-[231] "3171031004" "3174021001" "3175101005" "3173071002" "3173081004"
-[236] "3174091002" "3173051003" "3173051002" "3172041002" "3171031007"
-[241] "3172021004" "3172021006" "3172021002" "3175091004" "3173031001"
-[246] "3173041001" "3173041004" "3171081004" "3173031004" "3174091005"
-[251] "3173021005" "3173021002" "3172021001" "3174011002" "3174011001"
-[256] "3173061003" "3174031004" "3173021003" "3172031005" "3172031002"
-[261] "3175061006" "3174101005" "3175011006" "3175011002" "3171031008"
-[266] "3172021007" "3173021007"</code></pre>
+<pre><code> [1] "BALE KAMBANG"          "HALIM PERDANA KUSUMAH" "JATI PULO"            
+ [4] "KAMPUNG TENGAH"        "KERENDANG"             "KRAMAT JATI"          
+ [7] "PAL MERIAM"            "PINANG RANTI"          "PULAU HARAPAN"        
+[10] "PULAU KELAPA"          "PULAU PANGGANG"        "PULAU PARI"           
+[13] "PULAU TIDUNG"          "PULAU UNTUNG JAWA"     "RAWA JATI"            </code></pre>
 </div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(bd_subdistrict[<span class="sc">!</span>(bd_subdistrict <span class="sc">%in%</span> cases_subdistrict)])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  [1] "KEAGUNGAN"              "GLODOK"                 "HARAPAN MULIA"         
-  [4] "CEMPAKA BARU"           "PASAR BARU"             "KARANG ANYAR"          
-  [7] "MANGGA DUA SELATAN"     "PETOJO UTARA"           "SENEN"                 
- [10] "BUNGUR"                 "CEMPAKA PUTIH TIMUR"    "RAWASARI"              
- [13] "MENTENG"                "CIKINI"                 "PETAMBURAN"            
- [16] "KEBON MELATI"           "KAMPUNG RAWA"           "TUGU UTARA"            
- [19] "KAMAL MUARA"            "PLUIT"                  "LAGOA"                 
- [22] "PAPANGGO"               "SUNGAI BAMBU"           "KEBON BAWANG"          
- [25] "WARAKAS"                "KOJA"                   "TUGU SELATAN"          
- [28] "RAWA BADAK SELATAN"     "CILINCING"              "WIJAYA KUSUMA"         
- [31] "KALIBARU"               "ROROTAN"                "SEMPER BARAT"          
- [34] "PADEMANGAN TIMUR"       "PADEMANGAN BARAT"       "ANCOL"                 
- [37] "KELAPA GADING TIMUR"    "CENGKARENG BARAT"       "MANGGA BESAR"          
- [40] "KAPUK"                  "CENGKARENG TIMUR"       "TANJUNG DUREN UTARA"   
- [43] "JELAMBAR"               "KRENDANG"               "SUKABUMI UTARA"        
- [46] "SUKABUMI SELATAN"       "KELAPA DUA"             "DURI KEPA"             
- [49] "KEDOYA UTARA"           "KEDOYA SELATAN"         "PEGADUNGAN"            
- [52] "PALMERAH"               "KOTA BAMBU SELATAN"     "RAWA BUNGA"            
- [55] "KEMBANGAN UTARA"        "MERUYA UTARA"           "SRENGSENG"             
- [58] "KEBON BARU"             "MANGGARAI SELATAN"      "SETIA BUDI"            
- [61] "KARET SEMANGGI"         "KARET KUNINGAN"         "MENTENG ATAS"          
- [64] "PASAR MANGGIS"          "GUNTUR"                 "KUNINGAN TIMUR"        
- [67] "MAMPANG PRAPATAN"       "BANGKA"                 "RAGUNAN"               
- [70] "PEJATEN TIMUR"          "PEJATEN BARAT"          "KEBAGUSAN"             
- [73] "KEBAYORAN LAMA UTARA"   "CIPULIR"                "GROGOL SELATAN"        
- [76] "SENAYAN"                "PONDOK LABU"            "GANDARIA SELATAN"      
- [79] "CIPETE SELATAN"         "PULO"                   "GANDARIA UTARA"        
- [82] "PETUKANGAN SELATAN"     "KALIBATA"               "RAWAJATI"              
- [85] "LENTENG AGUNG"          "JAGAKARSA"              "CIPEDAK"               
- [88] "BINTARO"                "PISANGAN BARU"          "KEBON MANGGIS"         
- [91] "UTAN KAYU SELATAN"      "JATINEGARA KAUM"        "JATI"                  
- [94] "CIPINANG MUARA"         "CIPINANG BESAR SELATAN" "CIPINANG BESAR UTARA"  
- [97] "TENGAH"                 "DUKUH"                  "BALEKAMBANG"           
-[100] "CILILITAN"              "KALISARI"               "DUREN SAWIT"           
-[103] "KLENDER"                "PONDOK KOPI"            "PINANGRANTI"           
-[106] "KEBON PALA"             "CIRACAS"                "CIPAYUNG"              
-[109] "KEMAYORAN"              "UTAN PANJANG"           "PISANGAN TIMUR"        
-[112] "RAWA BADAK UTARA"       "TANJUNG DUREN SELATAN"  "JELAMBAR BARU"         
-[115] "KEBON KOSONG"           "SERDANG"                "GUNUNG SAHARI SELATAN" 
-[118] "SUMUR BATU"             "KEBON KELAPA"           "DURI PULO"             
-[121] "KARTINI"                "GUNUNG SAHARI UTARA"    "GAMBIR"                
-[124] "CIDENG"                 "PETOJO SELATAN"         "KENARI"                
-[127] "PASEBAN"                "KRAMAT"                 "KWITANG"               
-[130] "CEMPAKA PUTIH BARAT"    "PEGANGSAAN"             "GONDANGDIA"            
-[133] "KEBON SIRIH"            "GELORA"                 "BENDUNGAN HILIR"       
-[136] "KARET TENGSIN"          "KEBON KACANG"           "KAMPUNG BALI"          
-[139] "JOHAR BARU"             "GALUR"                  "TANAH TINGGI"          
-[142] "PENJARINGAN"            "KAPUK MUARA"            "PEJAGALAN"             
-[145] "TANJUNG PRIOK"          "SUNTER JAYA"            "SUNTER AGUNG"          
-[148] "SUKAPURA"               "MARUNDA"                "SEMPER TIMUR"          
-[151] "TAMAN SARI"             "KRUKUT"                 "PEGANGSAAN DUA"        
-[154] "KELAPA GADING BARAT"    "DURI KOSAMBI"           "RAWA BUAYA"            
-[157] "KEDAUNG KALI ANGKE"     "MAPHAR"                 "TANGKI"                
-[160] "GROGOL"                 "TOMANG"                 "PINANGSIA"             
-[163] "TAMBORA"                "KALI ANYAR"             "DURI UTARA"            
-[166] "TANAH SEREAL"           "JEMBATAN BESI"          "ANGKE"                 
-[169] "JEMBATAN LIMA"          "PEKOJAN"                "ROA MALAKA"            
-[172] "DURI SELATAN"           "CIPINANG"               "KEBON JERUK"           
-[175] "KALIDERES"              "SEMANAN"                "TEGAL ALUR"            
-[178] "KAMAL"                  "SLIPI"                  "KOTA BAMBU UTARA"      
-[181] "JATIPULO"               "KEMANGGISAN"            "MERUYA SELATAN"        
-[184] "TEBET BARAT"            "JOGLO"                  "KEMBANGAN SELATAN"     
-[187] "TEBET TIMUR"            "CIPINANG CEMPEDAK"      "MENTENG DALAM"         
-[190] "BUKIT DURI"             "MANGGARAI"              "KARET"                 
-[193] "JATI PADANG"            "PELA MAMPANG"           "TEGAL PARANG"          
-[196] "KUNINGAN BARAT"         "PASAR MINGGU"           "CILANDAK TIMUR"        
-[199] "PONDOK PINANG"          "GROGOL UTARA"           "KEBAYORAN LAMA SELATAN"
-[202] "CILANDAK BARAT"         "LEBAK BULUS"            "MELAWAI"               
-[205] "GUNUNG"                 "KRAMAT PELA"            "SELONG"                
-[208] "RAWA BARAT"             "PETOGOGAN"              "CIPETE UTARA"          
-[211] "PANCORAN"               "DUREN TIGA"             "PENGADEGAN"            
-[214] "CIKOKO"                 "SRENGSENG SAWAH"        "CIGANJUR"              
-[217] "TANJUNG BARAT"          "PESANGGRAHAN"           "PETUKANGAN UTARA"      
-[220] "PULO GADUNG"            "ULUJAMI"                "UTAN KAYU UTARA"       
-[223] "KAYU MANIS"             "PALMERIAM"              "RAWAMANGUN"            
-[226] "KAYU PUTIH"             "KAMPUNG MELAYU"         "BIDARA CINA"           
-[229] "BALI MESTER"            "KRAMATJATI"             "MAKASAR"               
-[232] "BATU AMPAR"             "CAWANG"                 "GEDONG"                
-[235] "BARU"                   "CIJANTUNG"              "PEKAYON"               
-[238] "JATINEGARA"             "RAWA TERATE"            "PENGGILINGAN"          
-[241] "CAKUNG TIMUR"           "PULO GEBANG"            "UJUNG MENTENG"         
-[244] "CAKUNG BARAT"           "PONDOK BAMBU"           "PONDOK KELAPA"         
-[247] "MALAKA SARI"            "MALAKA JAYA"            "HALIM PERDANA KUSUMA"  
-[250] "CIPINANG MELAYU"        "CIBUBUR"                "KELAPA DUA WETAN"      
-[253] "SUSUKAN"                "RAMBUTAN"               "CILANGKAP"             
-[256] "PONDOK RANGGON"         "MUNJUL"                 "SETU"                  
-[259] "BAMBU APUS"             "LUBANG BUAYA"           "CEGER"                 </code></pre>
+<pre><code>[1] "KRENDANG"             "RAWAJATI"             "TENGAH"              
+[4] "BALEKAMBANG"          "PINANGRANTI"          "JATIPULO"            
+[7] "PALMERIAM"            "KRAMATJATI"           "HALIM PERDANA KUSUMA"</code></pre>
 </div>
 </div>
 </section>
@@ -1407,18 +1289,18 @@ Dimension:     XY
 Bounding box:  xmin: -3644275 ymin: 663887.8 xmax: -3606237 ymax: 701380.1
 Projected CRS: DGN95 / Indonesia TM-3 zone 54.1
 # A tibble: 261 x 32
-   gi_star    e_gi    var_gi p_value p_sim p_fol~1 skewness kurtosis nb    wts  
-     &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;nb&gt;  &lt;lis&gt;
- 1   2.08  0.00381   3.93e-8 0.0374   0.08    0.04  4.60e-1  0.248   &lt;int&gt; &lt;dbl&gt;
- 2  -1.34  0.00383   6.01e-8 0.180    0.22    0.11 -3.19e-1 -0.505   &lt;int&gt; &lt;dbl&gt;
- 3  -2.53  0.00382   7.11e-8 0.0114   0.04    0.02 -6.00e-3  0.405   &lt;int&gt; &lt;dbl&gt;
- 4  -2.39  0.00383   5.00e-8 0.0170   0.08    0.04 -8.11e-2  0.257   &lt;int&gt; &lt;dbl&gt;
- 5  -0.907 0.00381   7.41e-8 0.364    0.44    0.22 -1.85e-1 -0.619   &lt;int&gt; &lt;dbl&gt;
- 6   0.636 0.00383   3.74e-8 0.525    0.46    0.23  3.97e-1  0.249   &lt;int&gt; &lt;dbl&gt;
- 7  -0.161 0.00383   9.40e-8 0.872    0.96    0.48  6.92e-1  0.836   &lt;int&gt; &lt;dbl&gt;
- 8  -2.64  0.00381   6.08e-8 0.00820  0.04    0.02  1.89e-1  0.260   &lt;int&gt; &lt;dbl&gt;
- 9  -0.550 0.00383   5.48e-8 0.582    0.58    0.29  3.82e-2  0.505   &lt;int&gt; &lt;dbl&gt;
-10  -2.71  0.00387   4.99e-8 0.00671  0.02    0.01  5.18e-5 -0.00474 &lt;int&gt; &lt;dbl&gt;
+   gi_star    e_gi      var_gi p_value p_sim p_fol~1 skewn~2 kurto~3 nb    wts  
+     &lt;dbl&gt;   &lt;dbl&gt;       &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt; &lt;nb&gt;  &lt;lis&gt;
+ 1   1.73  0.00381     5.64e-8 0.0841   0.2     0.1   0.508  -0.119  &lt;int&gt; &lt;dbl&gt;
+ 2  -1.25  0.00386     8.46e-8 0.213    0.2     0.1   0.202  -0.154  &lt;int&gt; &lt;dbl&gt;
+ 3  -2.43  0.00380     7.28e-8 0.0153   0.02    0.01  0.0873 -0.372  &lt;int&gt; &lt;dbl&gt;
+ 4  -2.31  0.00382     5.06e-8 0.0209   0.02    0.01 -0.0501 -0.444  &lt;int&gt; &lt;dbl&gt;
+ 5  -0.840 0.00382     8.90e-8 0.401    0.38    0.19 -0.110   0.178  &lt;int&gt; &lt;dbl&gt;
+ 6   0.654 0.00382     4.11e-8 0.513    0.46    0.23  0.0280 -0.0148 &lt;int&gt; &lt;dbl&gt;
+ 7  -0.222 0.00385     8.86e-8 0.824    0.84    0.42  0.0112 -0.285  &lt;int&gt; &lt;dbl&gt;
+ 8  -2.81  0.00382     5.52e-8 0.00501  0.02    0.01  0.0863 -0.504  &lt;int&gt; &lt;dbl&gt;
+ 9  -0.604 0.00387     7.92e-8 0.546    0.56    0.28  0.0361 -0.326  &lt;int&gt; &lt;dbl&gt;
+10  -2.49  0.00384     5.28e-8 0.0129   0.02    0.01  0.337   0.398  &lt;int&gt; &lt;dbl&gt;
 # ... with 251 more rows, 22 more variables: Sub_District &lt;chr&gt;,
 #   `2021-07-01` &lt;dbl&gt;, `2021-08-01` &lt;dbl&gt;, `2021-09-01` &lt;dbl&gt;,
 #   `2021-10-01` &lt;dbl&gt;, `2021-11-01` &lt;dbl&gt;, `2021-12-01` &lt;dbl&gt;,
@@ -1530,6 +1412,36 @@ Projected CRS: DGN95 / Indonesia TM-3 zone 54.1
 </section>
 <section id="observations-from-gi-maps" class="level3">
 <h3 class="anchored" data-anchor-id="observations-from-gi-maps">7.3 Observations from Gi* Maps</h3>
+<p>Looking at the placements of hot spots (green) and cold spots (yellow/orange), it coincides with the Quantile Choropleth maps that showed the sub-district which were pro-vaccination and anti-vaccination.</p>
+</section>
+</section>
+<section id="emerging-hot-spot-analysis-ehsa-sfdep-methods" class="level2">
+<h2 class="anchored" data-anchor-id="emerging-hot-spot-analysis-ehsa-sfdep-methods">8.0 Emerging Hot Spot Analysis (EHSA): sfdep methods</h2>
+<p>Emerging Hot Spot Analysis (EHSA) is a spatio-temporal analysis method for revealing and describing how hot spot and cold spot areas evolve over time. The analysis consist of four main steps:</p>
+<ul>
+<li>Building a space-time cube,</li>
+<li>Calculating Getis-Ord local Gi* statistic for each bin by using an FDR correction,</li>
+<li>Evaluating these hot and cold spot trends by using Mann-Kendall trend test,</li>
+<li>Categorising each study area location by referring to the resultant trend z-score and p-value for each location with data, and with the hot spot z-score and p-value for each bin.</li>
+</ul>
+<section id="creating-a-time-series-cube" class="level3">
+<h3 class="anchored" data-anchor-id="creating-a-time-series-cube">8.1 Creating a Time Series Cube</h3>
+<p>In the code chunk below, <code>spacetime()</code> of sfdep is used to create an spatio-temporal cube.</p>
+<div class="cell">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>HCSA_st <span class="ot">&lt;-</span> <span class="fu">spacetime</span>(cases_jakarta, bd_jakarta,</span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">.loc_col =</span> <span class="st">"Sub_District"</span>,</span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">.time_col =</span> <span class="st">"Year"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Next, <code>is_spacetime_cube()</code> of sfdep package will be used to verify if GDPPC_st is indeed an space-time cube object</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">is_spacetime_cube</span>(HCSA_st)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE</code></pre>
+</div>
+</div>
 
 
 </section>

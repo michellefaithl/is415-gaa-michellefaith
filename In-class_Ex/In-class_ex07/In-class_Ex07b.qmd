@@ -27,7 +27,7 @@ As usual, `p_load()` of pacman package will be used to check if the necessary pa
 Five R packages are need for this in-class exercise, they are: sf, sfdep, tmap, and tidyverse.
 
 ```{r}
-pacman::p_load(sf, sfdep, tmap, plotly, tidyverse)
+pacman::p_load(sf, sfdep, tmap, plotly, tidyverse, zoo)
 ```
 
 ### The Data
@@ -65,3 +65,7 @@ GDPPC_st <- spacetime(GDPPC, hunan,
 ```
 
 Next, `is_spacetime_cube()` of sfdep package will be used to verify if GDPPC_st is indeed an space-time cube object.
+
+```{r}
+is_spacetime_cube(GDPPC_st)
+```

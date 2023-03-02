@@ -88,7 +88,7 @@ In addition, the following tidyverse packages will be used:
 
 # initialise a list of required packages
 # note that 'readxl' is in the list of packages despite being part of tidyverse: as readxl is not a core tidyverse package, it needs to be loaded explicitly
-packages = c('plyr', 'sf', 'sfdep', 'tidyverse', 'readxl', 'tmap', 'maptools', 'kableExtra', 'plotly')
+packages = c('plyr', 'sf', 'sfdep', 'tidyverse', 'readxl', 'tmap', 'maptools', 'kableExtra', 'plotly', 'zoo')
 
 # for each package, check if installed and if not, install it
 for (p in packages){
@@ -280,7 +280,12 @@ Our columns of interest, relevant to our analysis, are as follows:
 
 -   BELUM VAKSIN (yet to be vaccinated)
 
-Now that we know our requirements, we can do this step-by-step: - importing all the files into one df, - retaining the necessary columns (and deleting duplicate columns), - adding the date column. Alternatively, we can combine all of these into a function!
+Now that we know our requirements, we can do this step-by-step: 
+-   importing all the files into one df, 
+-   retaining the necessary columns (and deleting duplicate columns), 
+-   adding the date and year columns.
+
+Alternatively, we can combine all of these into a function!
 
 ```{r}
 #| code-fold: true
@@ -302,9 +307,15 @@ aspatial_preprocess <- function(filepath){
   endpoint <- gregexpr(pattern=")", filepath)[[1]] - 1
   result_file$Date <- substr(filepath, startpoint, endpoint)
   
+  # Create the Year Column
+  startpoint <- gregexpr(pattern=")", filepath)[[1]] - 4
+  endpoint <- gregexpr(pattern=")", filepath)[[1]] - 1
+  result_file$Year <- strtoi(substr(filepath, startpoint, endpoint))
+  
   # Retain the Relevant Columns
   result_file <- result_file %>% 
     select("Date", 
+           "Year",
            "KODE KELURAHAN", 
            "WILAYAH KOTA", 
            "KECAMATAN",
@@ -458,7 +469,7 @@ From the map, we can tell that there are still some 'missing' values. But this d
 
 ```{r}
 # checks for unique values of District in cases_jakarta that aren't already present in bd_jakarta and vice versa
-cases_subdistrict <- c(cases_jakarta$Village)
+cases_subdistrict <- c(cases_jakarta$Sub_District)
 bd_subdistrict <- c(bd_jakarta$Sub_District)
 
 unique(cases_subdistrict[!(cases_subdistrict %in% bd_subdistrict)])
@@ -812,26 +823,23 @@ Emerging Hot Spot Analysis (EHSA) is a spatio-temporal analysis method for revea
 -   Categorising each study area location by referring to the resultant trend z-score and p-value for each location with data, and with the hot spot z-score and p-value for each bin.
 
 ### 8.1 Creating a Time Series Cube
-Since `spacetime()` requires a time_col to be numerical/integer, we need to create another column *Year*.
-```{r}
 
-```
-
-
-
-In the code chunk below, `spacetime()` of sfdep ised used to create an spatio-temporal cube.
+In the code chunk below, `spacetime()` of sfdep is used to create an spatio-temporal cube.
 
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
-HCSA_st <- spacetime(HCSA, MVR,
+HCSA_st <- spacetime(cases_jakarta, bd_jakarta,
                       .loc_col = "Sub_District",
-                      .time_col = "Date")
+                      .time_col = "Year")
 ```
 
 
+Next, `is_spacetime_cube()` of sfdep package will be used to verify if GDPPC_st is indeed an space-time cube object
 
-
+```{r}
+is_spacetime_cube(HCSA_st)
+```
 
 
 
