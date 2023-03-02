@@ -22,7 +22,6 @@ Using the steps you had learned, import the LGA boundary GIS data of Nigeria dow
 ```{r}
 
 #| code-fold: true
-
 #| code-summary: "Show the code"
 
 geoNGA <- st_read("data/geospatial/",

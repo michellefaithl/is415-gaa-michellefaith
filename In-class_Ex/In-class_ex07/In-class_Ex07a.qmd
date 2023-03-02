@@ -21,15 +21,18 @@ pacman::p_load(tidyverse, tmap, sf, sfdep, plotly)
 hunan <- st_read(dsn = "data/geospatial",
                      layer = "Hunan")
 ```
+
 ```{r}
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 ```
+
 ## Joining using left join
 
 ```{r}
 hunan_GDPPC <- left_join(hunan, hunan2012) %>%
   select(1:4, 7, 15)
 ```
+
 ## Deriving contiguity weights: queen's method
 
 ```{r}
@@ -49,6 +52,7 @@ moranI <- global_moran(wm_q$GDPPC,
 ```
 
 #### performing gloabl moran'I test
+
 ```{r}
 global_moran_test(wm_q$GDPPC,
                   wm_q$nb,
@@ -67,6 +71,7 @@ global_moran_perm(wm_q$GDPPC,
 ```
 
 ## Computing local Moran's I
+
 ```{r}
 lisa <- wm_q %>%
   mutate(local_moran= local_moran(
@@ -106,6 +111,7 @@ tm_shape(lisa) +
 ```
 
 ## computing local Moran's I
+
 ```{r}
 HCSA <- wm_q %>%
   mutate(local_Gi = local_gstar_perm(
@@ -115,21 +121,25 @@ HCSA <- wm_q %>%
 HCSA
 ```
 
-##visualing Gi*
+## Hot Spot and Cold Spot Area Analysis (HCSA)
+HCSA uses spatial weights to identify locations of statistically significant hot spots and cold spots in an spatially weighted attribute that are in proximity to one another based on a calculated distance. The analysis groups features when similar high (hot) or low (cold) values are found in a cluster. The polygon features usually represent administration boundaries or a custom grid structure.
+
+## Computing local Gi* statistics
 ```{r}
-tmap_mode("plot")
-tm_shape(HCSA) +
-  tm_fill("gi_star") +
-  tm_borders(alpha = 0.5) 
+wm_idw <- hunan_GDPPC %>%
+  mutate(nb = st_contiguity(geometry),
+         wts = st_inverse_distance(nb, geometry,
+                                   scale = 1,
+                                   alpha = 1),
+         .before = 1)
 ```
 
-### visualising p-value of HCSA
 ```{r}
-tmap_mode("plot")
-tm_shape(HCSA) +
-  tm_fill("p_sim") +
-  tm_borders(alpha = 0.5)
+HCSA <- wm_idw %>% 
+  mutate(local_Gi = local_gstar_perm(
+    GDPPC, nb, wt, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+HCSA
 ```
-
-
 

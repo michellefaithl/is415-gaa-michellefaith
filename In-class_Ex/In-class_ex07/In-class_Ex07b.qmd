@@ -10,14 +10,16 @@ editor: visual
 ---
 
 ## Overview
+
 Emerging Hot Spot Analysis (EHSA) is a spatio-temporal analysis method for revealing and describing how hot spot and cold spot areas evolve over time. The analysis consist of four main steps:
 
 -   Building a space-time cube,
--   Calculating Getis-Ord local Gi* statistic for each bin by using an FDR correction,
+-   Calculating Getis-Ord local Gi\* statistic for each bin by using an FDR correction,
 -   Evaluating these hot and cold spot trends by using Mann-Kendall trend test,
 -   Categorising each study area location by referring to the resultant trend z-score and p-value for each location with data, and with the hot spot z-score and p-value for each bin.
 
 ## Getting Started
+
 ### Installing and Loading the R Packages
 
 As usual, `p_load()` of pacman package will be used to check if the necessary packages have been installed in R, if yes, load the packages on R environment.
@@ -29,14 +31,14 @@ pacman::p_load(sf, sfdep, tmap, plotly, tidyverse)
 ```
 
 ### The Data
+
 For the purpose of this in-class exercise, the Hunan data sets will be used. There are two data sets in this use case, they are:
 
 -   Hunan, a geospatial data set in ESRI shapefile format, and
--   Hunan_GDPPC, an attribute data set in csv format.
-Before getting started, reveal the content of *Hunan_GDPPC.csv* by using Notepad and MS Excel.
-
+-   Hunan_GDPPC, an attribute data set in csv format. Before getting started, reveal the content of *Hunan_GDPPC.csv* by using Notepad and MS Excel.
 
 ### Importing geospatial data
+
 In the code chunk below, st_read() of sf package is used to import *Hunan* shapefile into R.
 
 ```{r}
@@ -45,12 +47,15 @@ hunan <- st_read(dsn = "data/geospatial",
 ```
 
 ### Importing attribute table
+
 In the code chunk below, `read_csv()` of readr is used to import *Hunan_GDPPC.csv* into R.
 
 ```{r}
 GDPPC <- read_csv("data/aspatial/Hunan_GDPPC.csv")
 ```
+
 ## Creating a Time Series Cube
+
 In the code chunk below, `spacetime()` of sfdep ised used to create an spatio-temporal cube.
 
 ```{r}
@@ -60,8 +65,3 @@ GDPPC_st <- spacetime(GDPPC, hunan,
 ```
 
 Next, `is_spacetime_cube()` of sfdep package will be used to verify if GDPPC_st is indeed an space-time cube object.
-
-
-
-
-

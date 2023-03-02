@@ -43,7 +43,7 @@ The specific tasks of this take-home exercise are as follows:
 
 ##### [Choropleth Mapping and Analysis]{.underline}
 
--   Compute the monthly vaccination rate from July 2021 to June 2022 at sub-district (also known as kelurahan in Bahasa Indonesia) level,
+-   Compute the monthly vaccination rate from **July 2021 to June 2022** at sub-district (also known as kelurahan in Bahasa Indonesia) level,
 -   Prepare the monthly vaccination rate maps by using appropriate tmap functions,
 -   Describe the spatial patterns revealed by the choropleth maps (not more than 200 words).
 
@@ -53,4 +53,786 @@ With reference to the vaccination rate maps prepared in ESDA: - Compute local Gi
 
 ##### [Emerging Hot Spot Analysis (EHSA)]{.underline}
 
-With reference to the local Gi\* values of the vaccination rate maps prepared in the previous section: - Perform Mann-Kendall Test by using the spatio-temporal local Gi\* values, - Select three sub-districts and describe the temporal trends revealed (not more than 250 words), and - Prepared a EHSA map of the Gi\* values of vaccination rate. The maps should only display the significant (i.e. p-value \< 0.05). - With reference to the EHSA map prepared, describe the spatial patterns revelaed. (not more than 250 words).
+With reference to the local Gi\* values of the vaccination rate maps prepared in the previous section: - Perform Mann-Kendall Test by using the spatio-temporal local Gi\* values, - Select three sub-districts and describe the temporal trends revealed (not more than 250 words), and - Prepared a EHSA map of the Gi\* values of vaccination rate. The maps should only display the significant (i.e. p-value \< 0.05). - With reference to the EHSA map prepared, describe the spatial patterns revealed. (not more than 250 words).
+
+## 2.0 Getting Started
+
+The R packages we'll use for this analysis are:
+
+-   **sf**: used for importing, managing, and processing geospatial data
+
+-   **tidyverse**: a collection of packages for data science tasks
+
+-   **tmap**: used for creating thematic maps, such as choropleth and bubble maps
+
+-   **maptools**: a set of tools for manipulating geographic data
+
+-   **kableExtra**: an extension of kable, used for table customisation
+
+-   **plyr**: used for splitting data, applying functions and combining results
+
+-   **sfdep**: An interface to 'spdep' to integrate with 'sf' objects and the 'tidyverse'
+
+-   **plotly**: contain interactive elements that allow users to modify, explore, and experience the visualized data in new ways.
+
+In addition, the following tidyverse packages will be used:
+
+-   **readxl** for importing Excel worksheets (.xlsx)
+-   **tidyr** for manipulating and tidying data
+-   **dplyr** for wrangling and transforming data
+-   **ggplot2** for visualising data
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+# initialise a list of required packages
+# note that 'readxl' is in the list of packages despite being part of tidyverse: as readxl is not a core tidyverse package, it needs to be loaded explicitly
+packages = c('plyr', 'sf', 'sfdep', 'tidyverse', 'readxl', 'tmap', 'maptools', 'kableExtra', 'plotly')
+
+# for each package, check if installed and if not, install it
+for (p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+  }
+  library(p,character.only = T)
+}
+```
+
+## 3.0 Data Wrangling: Geospatial Data
+
+### 3.1 Importing Geospatial Data
+
+```{r}
+bd_jakarta <- st_read(dsn="data/geospatial",
+                      layer="BATAS_DESA_DESEMBER_2019_DUKCAPIL_DKI_JAKARTA")
+```
+
+From the output message, we can see that the assigned coordinate system is **WGS84**. For this Indonesian-specific geospatial dataset, we would need to use the national CRS of Indonesia, DGN95, **ESPG Code 23845**.
+
+```{r}
+# transforms the CRS to DGN95, ESPG code 23845
+bd_jakarta <- st_transform(bd_jakarta, 23845)
+```
+
+Let us check if the CRS has been properly assigned:
+
+```{r}
+st_crs(bd_jakarta)
+```
+
+### 3.2 Data Pre-Processing
+
+Before we start visualising our data, we have to first check for two things: - invalid geometries, and - missing values
+
+##### 3.2.1 Invalid Geometries
+
+Firstly, let us check for invalid geometries: - the `st_is_valid function` checks whether a geometry is valid, which returns the indices of certain values based on logical conditions.
+
+```{r}
+# checks for the number of geometries that are NOT valid
+length(which(st_is_valid(bd_jakarta) == FALSE))
+```
+
+This shows that there are no invalid geometries.
+
+##### 3.2.2 Missing Values
+
+Next, let us check for missing values. - the rowSums(is.na(bd_jakarta))!=0 checks every row if there are NA values, returning TRUE or FALSE. - the bd_jakarta 'wrapper' prints said rows that contain NA values
+
+```{r}
+bd_jakarta[rowSums(is.na(bd_jakarta))!=0,]
+```
+
+We can see that there are 2 NA values. We can remove rows that have an NA value by using the code below:
+
+```{r}
+# removes rows that have an NA value in DESA_KELUR
+# in context of this data, we can use other columns, such as KAB_KOTA or KECAMATAN
+# but since we're looking at this on a sub-district level, DESA_KELUR seemed most appropriate
+bd_jakarta <- na.omit(bd_jakarta,c("DESA_KELUR"))
+```
+
+### 3.3 Removal of Outer Islands
+
+We have finished the standard pre-processing. Now, let's visualise our data!
+
+```{r}
+# plots the geometry only
+# alternatively, we can use plot(bd_jakarta$geometry)
+plot(st_geometry(bd_jakarta))
+```
+
+From our output as shown above, we can see that *bd_jakarta* include outer and inner islands. From our task requirement, we only need inner islands. Hence, we will need to remove them.
+
+From *3.2.2*'s output, we can focus on the KAB_KOTA (City), KECAMATAN (District) and DESA_KELUR (Sub-district). After translation, we can tell that KAB_KOTA would have the coarsest-grained level of distinction. Hence, let's check it's unique values.
+
+```{r}
+unique(bd_jakarta$"KAB_KOTA")
+```
+
+Looking at the output, we can see that all cities within Jakarta has the prefix of *Jakarta*. There is an outlier *KEPULAUAN SERIBU*, which means 'Thousand Islands', referring to the outer islands. We shall visualise this to ensure our assumption is correct.
+
+```{r}
+# with bd_jakarta as the input data (setting the 'base')
+# draw the KAB_KOTA (city) polygons
+# essentially shades the map according to the city divisions
+tm_shape(bd_jakarta) + 
+  tm_polygons("KAB_KOTA")
+```
+
+Since we have identified the outer islands, let's remove them.
+
+```{r}
+bd_jakarta <- filter(bd_jakarta, KAB_KOTA != "KEPULAUAN SERIBU")
+```
+
+### 3.4 Retaining first 9 Columns
+
+For this analysis, only the first 9 columns are relevant.
+
+```{r}
+# filters out other fields by accepting only the first 9 fields
+bd_jakarta <- bd_jakarta[, 0:9]
+```
+
+### 3.5 Renaming Columns using Translation
+
+Let's translate the column names of *bd_jakarta* so that we can better understand what it means.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+# with reference to: https://www.codegrepper.com/code-examples/r/rename+column+name+in+r
+# renames the columns in the style New_Name = OLD_NAME
+bd_jakarta <- bd_jakarta %>% 
+  dplyr::rename(
+    Object_ID=OBJECT_ID,
+    Province=PROVINSI, 
+    City=KAB_KOTA, 
+    District=KECAMATAN, 
+    Village_Code=KODE_DESA, 
+    Village=DESA, 
+    Sub_District=DESA_KELUR,
+    Code=KODE, 
+    Total_Population=JUMLAH_PEN
+    )
+```
+
+### 3.6 Initial EDA
+
+Let's take a quick look at our dataset to better understand what it contains.
+
+```{r}
+glimpse(bd_jakarta)
+```
+
+```{r}
+length(unique(bd_jakarta$"Sub_District"))
+```
+
+```{r}
+length(unique(bd_jakarta$"District"))
+```
+
+From these outputs, we can tell that there are 261 unique sub-districts and 42 unique districts. However, the max number of categories for mapping using tmap is 30. Even though we can adjust the max.categories in tmap_options, it would be hard to view and comprehend 42 and 261 categories. Hence, the only level which is comfortable to view would be the 'City' level.
+
+```{r}
+# shades the map according to the city divisions
+tm_shape(bd_jakarta) + 
+  tm_polygons("City")
+```
+
+## 4.0 Data Wrangling: Aspatial
+
+### 4.1 Pre-importing EDA
+
+In our 'data/aspatial' folder, we have multiple .xlsx files ranging from **1 July 2021 to 1 June 2022**. However, before we start compiling all of our data, it's important to understand what we're working with and to check for any discrepancies, so let's perform a brief EDA:
+
+```{r}
+# reads the 1st July 2021 .xlsx aspatial data and stores it as jul2021
+jul2021 <- read_xlsx("data/aspatial/Data Vaksinasi Berbasis Kelurahan (01 Juli 2021).xlsx")
+glimpse(jul2021)
+```
+
+### 4.2 Creating an Aspatial Data Pre-processing Function
+
+These are the requirements for our aspatial data:
+
+-   only need particular columns of interest (listed below) -
+
+-   we need to create an extra *Date* column that has the month and year of the observation, which is also in the file name
+
+    -   each file has a regular format: Data Vaksinasi Berbasis Kelurahan(DD Month YYYY)
+
+    -   the months in the naming format are in Bahasa Indonesia - we should convert it to English for ease of comprehension
+
+Our columns of interest, relevant to our analysis, are as follows:
+
+-   KODE KELURAHAN (village code)
+
+-   WILAYAH KOTA (city)
+
+-   KECAMATAN (district)
+
+-   SASARAN (target)
+
+-   BELUM VAKSIN (yet to be vaccinated)
+
+Now that we know our requirements, we can do this step-by-step: - importing all the files into one df, - retaining the necessary columns (and deleting duplicate columns), - adding the date column. Alternatively, we can combine all of these into a function!
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+# takes in an aspatial data filepath and returns a processed output
+aspatial_preprocess <- function(filepath){
+  # the .name_repair="minimal" is to indicate not to replace duplicate column names with 'NAME...n' like we saw above!
+  # reference: https://readxl.tidyverse.org/articles/articles/column-names.html
+  result_file <- read_xlsx(filepath, .name_repair="minimal")
+  
+  # Create the Date Column
+  # the format of our files is: Data Vakasinasi Berbasis Kelurhan (DD Month YYYY)
+  # while the start is technically "(", "(" is part of a regular expression and leads to a warning message, so we'll use "Corona" instead. The [[1]] refers to the first element in the list.
+  # we're loading it as DD-Month-YYYY format
+  # as such, the most relevant functions are substr (returns a substring) and either str_locate (returns location of substring as an integer matrix) or gregexpr (returns a list of locations of substring)
+  # reference https://stackoverflow.com/questions/14249562/find-the-location-of-a-character-in-string
+  startpoint <- gregexpr(pattern="Kelurahan", filepath)[[1]] + 11
+  endpoint <- gregexpr(pattern=")", filepath)[[1]] - 1
+  result_file$Date <- substr(filepath, startpoint, endpoint)
+  
+  # Retain the Relevant Columns
+  result_file <- result_file %>% 
+    select("Date", 
+           "KODE KELURAHAN", 
+           "WILAYAH KOTA", 
+           "KECAMATAN",
+           "KELURAHAN",
+           "SASARAN",
+           "BELUM VAKSIN")
+  return(result_file)
+}
+```
+
+### 4.3 Feeding Files into our aspatial_preprocess function
+
+Now that we have our custom function to preprocess aspatial data, we need to feed file into it. There's the option of doing it manually, inputting our file names line by line - but with a handy function called `list.files()` and `lapply()` (that applies a function to all elements in a list), the process can be cut down to a few lines!
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+
+# in the folder 'data/aspatial', find files with the extension '.xlsx' and add it to our fileslist 
+# the full.names=TRUE prepends the directory path to the file names, giving a relative file path - otherwise, only the file names (not the paths) would be returned 
+# reference: https://stat.ethz.ch/R-manual/R-devel/library/base/html/list.files.html
+fileslist <-list.files(path = "data/aspatial", pattern = "*.xlsx", full.names=TRUE)
+
+# afterwards, for every element in fileslist, apply aspatial_process function
+dflist <- lapply(seq_along(fileslist), function(x) aspatial_preprocess(fileslist[x]))
+```
+
+Lastly, we'll need to convert the *dflist* into an actual dataframe with `Idply()`.
+
+```{r}
+cases_jakarta <- ldply(dflist, data.frame)
+```
+
+Let's check what cases_jakarta looks like, and make sure the columns are correct:
+
+```{r}
+glimpse(cases_jakarta)
+```
+
+### 4.4 Formatting Date Column
+
+Since the values in the Date column were derived from substrings, they're naturally in string format. We should convert that into datetime, keeping in mind that the values in Date are in Bahasa Indonesia.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# parses the 'Date' column into Month(Full Name)-YYYY datetime objects
+# reference: https://stackoverflow.com/questions/53380650/b-y-date-conversion-gives-na
+
+# locale="ind" means that the locale has been set as Indonesia
+Sys.setlocale(locale="ind")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+cases_jakarta$Date <- c(cases_jakarta$Date) %>% 
+  as.Date(cases_jakarta$Date, format ="%d %B %Y")
+
+glimpse(cases_jakarta)
+```
+
+### 4.5 Renaming Columns with Translation
+
+We'll translate the column names to English for ease of comprehension.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# renames the columns in the style New_Name = OLD_NAME
+cases_jakarta <- cases_jakarta %>% 
+  dplyr::rename(
+    Date=Date,
+    Village_Code=KODE.KELURAHAN,
+    Sub_District=KELURAHAN,
+    City=WILAYAH.KOTA, 
+    District=KECAMATAN, 
+    Target=SASARAN, 
+    To_Be_Vaccinated=BELUM.VAKSIN
+    )
+```
+
+### 4.6 Further Data Processing
+
+Now that our dataframe is confirmed, let's execute any pre-processing that we might have missed.
+
+Firstly, let's check for missing values.
+
+```{r}
+# returns rows that contain NA values
+cases_jakarta[rowSums(is.na(cases_jakarta))!=0,]
+```
+
+Since these rows have missing values from their village_code to subdistrict, they should be removed using the code below.
+
+```{r}
+# removes rows that have an NA value in village_code
+cases_jakarta <- na.omit(cases_jakarta,c("village_code"))
+```
+
+Now, we're done with the data importing and pre-processing, and we're ready to move on to the next section!
+
+## 5.0 Geospatial Data Integration
+
+### 5.1 Preliminary joining + new column + EDA
+
+Now that we have both the geospatial and aspatial data frames, we'll need to join them. A quick look at their headers tell us what their common fields are:
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# checks for column names of the dataframes
+colnames(bd_jakarta)
+```
+
+```{r}
+colnames(cases_jakarta)
+```
+
+From this, *Village_Code*, *District*, *City* and *"Village* should match up. Let's try doing that first.
+
+```{r}
+# joins cases_jakarta to bd_jakarta based on Sub_District
+combined_jakarta <- left_join(bd_jakarta, cases_jakarta,
+                              by=c(
+                                "Sub_District"="Sub_District")
+                              )
+```
+
+Let's look at the columns that we have:
+
+```{r}
+colnames(combined_jakarta)
+```
+
+Now, let's visualise our current combined_jakarta in terms of Target:
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+target = tm_shape(combined_jakarta)+
+  tm_fill("Target") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title="Target")
+target
+```
+
+From the map, we can tell that there are still some 'missing' values. But this does not make sense because we have already deleted rows with NA values. This is probably due to mismatched records and we need to investigate the dataframe.
+
+### 5.2 Identifying Mismatched District Records
+
+```{r}
+# checks for unique values of District in cases_jakarta that aren't already present in bd_jakarta and vice versa
+cases_subdistrict <- c(cases_jakarta$Village)
+bd_subdistrict <- c(bd_jakarta$Sub_District)
+
+unique(cases_subdistrict[!(cases_subdistrict %in% bd_subdistrict)])
+```
+
+```{r}
+unique(bd_subdistrict[!(bd_subdistrict %in% cases_subdistrict)])
+```
+
+### 5.3 Correcting Mismatched Sub-District Records
+
+Now that we know which sub-district records are mismatched, we need to rectify the mismatches by renaming them.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# where bd_jakarta is a mismatched value, replace with the correct value
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'BALEKAMBANG'] <- 'BALE KAMBANG'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'HALIM PERDANA KUSUMA'] <- 'HALIM PERDANA KUSUMAH'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'JATIPULO'] <- 'JATI PULO'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'KALI BARU'] <- 'KALIBARU'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'TENGAH'] <- 'KAMPUNG TENGAH'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'KRAMATJATI'] <- 'KRAMAT JATI'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'KRENDANG'] <- 'KERENDANG'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'PALMERIAM'] <- 'PAL MERIAM'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'PINANGRANTI'] <- 'PINANG RANTI'
+bd_jakarta$Sub_District[bd_jakarta$Sub_District == 'RAWAJATI'] <- 'RAWA JATI'
+```
+
+### 5.4 Joining + EDA
+
+Now, we have a standardised common identifier among our geospatial and aspatial dataframes. Let's join them once more:
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# joins cases_jakarta to bd_jakarta based on Sub_District
+combined_jakarta <- left_join(bd_jakarta, cases_jakarta,
+                              by=c(
+                                "Sub_District"="Sub_District")
+                              )
+```
+
+Now, let's once again visualise our updated combined_jakarta in terms of Target:
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+updated_target = tm_shape(combined_jakarta)+
+  tm_fill("Target") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title="Updated Target")
+updated_target
+```
+
+### 5.5 Calculations
+
+Before we move into into EDA and thematic mapping, we need to calculate the monthly vaccination rate, as per assignment requirements.
+
+##### 5.5.1 Monthly Vaccination Rate
+
+The monthly vaccination rate can be calculated by minusing *To_Be_Vaccinated* from *Target*, then diving it by *Target*. This would be based on the sub-district and date.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# grouping based on the sub-district and date
+MVR <- cases_jakarta %>%
+  inner_join(bd_jakarta, by=c("Sub_District" = "Sub_District")) %>%
+  group_by(Sub_District, Date) %>%
+  dplyr::summarise(`monthly_vaccinated_rate` = (((Target) - (To_Be_Vaccinated))/Target)) %>%
+  
+  #afterwards, pivots the table based on the Dates, using the monthly vaccinated rate as the values
+  ungroup() %>% pivot_wider(names_from = Date,
+              values_from = monthly_vaccinated_rate)
+```
+
+Our ***MVR*** should look like this:
+
+![](monthly_vacc_table.PNG)
+
+### 5.6 Converting dataframes of sf objects
+Before we continue to mapping, we should convert these dataframes into sf objects.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+combined_jakarta <- st_as_sf(combined_jakarta)
+
+# need to join our previous dataframes with the geospatial data to ensure that geometry column is present
+MVR <- MVR%>% left_join(bd_jakarta, by=c("Sub_District"="Sub_District"))
+MVR <- st_as_sf(MVR)
+```
+
+## 6.0 Mapping: Monthly Vaccination Rate
+### 6.1 Jenks Choropleth Map
+The Jenks method clusters data into groups that minimize the within-group variance and maximize the between-group variance [(source)](https://wiki.gis.com/wiki/index.php/Jenks_Natural_Breaks_Classification). However, it will not work as well if the data has low variance, so let's check the variance.
+
+```{r}
+var(MVR$`2021-07-01`)
+```
+
+```{r}
+var(MVR$`2022-06-01`)
+```
+Since the variance is very low, Jenks would not be suitable. Let's try another classification method.
+
+### 6.2 Quantile Choropleth Map
+Quantile classification is a data classification method that distributes a set of values into groups that contain an equal number of values. The attribute values are added up, then divided into the predetermined number of classes [(source)](https://wiki.gis.com/wiki/index.php/Quantile).
+
+After playing around with different class numbers, 6 classes seems to be just nice. If there are too many classes, it becomes hard to read and difficult to understand the differences. If there are too few classes, you might not be able to see any differences.  
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+library(tmap)
+
+# using the jenks method, with 6 classes
+tmap_mode("plot")
+tm_shape(MVR)+
+  tm_fill("2021-07-01", 
+          n= 6,
+          style = "quantile", 
+          title = "Vaccination Rate") +
+  tm_layout(main.title = "Vaccination Rate in July 2021",
+            main.title.position = "center",
+            main.title.size = 1,
+            legend.height = 0.5, 
+            legend.width = 0.4,
+            frame = TRUE) +
+  tm_borders(alpha = 0.5)
+```
+
+Now, we will plot it for all months with a helper function.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# input: the dataframe and the variable name - in this case, the month 
+# with style="quantile" for the quantile classification method
+quantile_plot <- function(df, varname) {
+  tm_shape(MVR) +
+    tm_polygons() +
+  tm_shape(df) +
+    tm_fill(varname, 
+          n= 6,
+          style = "quantile", 
+          title = "Vaccination Rate") +
+    tm_layout(main.title = varname,
+          main.title.position = "center",
+          main.title.size = 1.2,
+          legend.height = 0.45, 
+          legend.width = 0.35,
+          frame = TRUE) +
+    tm_borders(alpha = 0.5)
+}
+```
+
+Let's visualise the quantile plots for all months.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# split it up into multiple arranges to make it easier to see
+library(tmap)
+tmap_mode("plot")
+tmap_arrange(quantile_plot(MVR, "2021-07-01"),
+             quantile_plot(MVR, "2021-08-01"),
+             quantile_plot(MVR, "2021-09-01"),
+             quantile_plot(MVR, "2021-10-01"))
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+tmap_arrange(quantile_plot(MVR, "2021-11-01"),
+             quantile_plot(MVR, "2021-12-01"),
+             quantile_plot(MVR, "2022-01-01"),
+             quantile_plot(MVR, "2022-02-01"))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+tmap_arrange(quantile_plot(MVR, "2022-03-01"),
+             quantile_plot(MVR, "2022-04-01"),
+             quantile_plot(MVR, "2022-05-01"),
+             quantile_plot(MVR, "2022-06-01"))
+```
+### 6.3 Observations from Quantile Choropleth Map
+Do note that each map has its own relative case rate: the ranges gradually grow larger over time with the greater influx of vaccination counts. By comparing the change of vaccination rates over the months, there are a number of observations we can make:
+
+-   From July 2021 to October 2021, vaccination rates for certain sub-districts in the West and Central of Jakarta were relatively high.
+-   From November 2021 to February 2022, vaccination rates for most of the sub-districts in the South of Jakarta were relatively high.
+-   From March 2022 to June 2022, vaccination rates for the sub-districts that were relatively high since November 2021 continued to remain high until June 2022.
+-   By analysis the maps by thirds, we can tell which sub-districts were pro-vaccination and anti-vaccination based on the vaccination rates.
+
+Let us check for the sub-districts with the highest vaccination rates at various stages.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# to check for darkest sub-district in early stages
+MVR$Sub_District[which.max(MVR$`2021-07-01`)]
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# to check for darkest sub-district in middle stages
+MVR$Sub_District[which.max(MVR$`2022-01-01`)]
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# to check for darkest sub-district in later stages
+MVR$Sub_District[which.max(MVR$`2022-06-01`)]
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# reorder based on decreasing values for Jan 2022, and assign to a new df
+MVR_descending <- MVR[order(MVR$`2022-01-01`,decreasing = TRUE),]
+MVR_descending_top5 <- MVR_descending[1:5,]
+MVR_descending_top5[,"Sub_District"]
+```
+From this, we can tell that *HALIM PERDANA KUSUMAH* was the most pro-vaccination sub-district in Jakarta,, followed by *SREMGSEMG SAWAH*, *GLODOK*, *KELAPA GADING TIMUR* and *MANGGARI SELATAN*.
+
+## 7.0 Local Measures of Spatial Association - sfdep methods
+According to Josiah Parry, the developer of the package, “sfdep builds on the great shoulders of spdep package for spatial dependence. sfdep creates an sf and tidyverse friendly interface to the package as well as introduces new functionality that is not present in spdep. sfdep utilizes list columns extensively to make this interface possible.”
+
+### 7.1 Hot Spot and Cold Spot Area Analysis (HCSA)
+HCSA uses spatial weights to identify locations of statistically significant hot spots and cold spots in an spatially weighted attribute that are in proximity to one another based on a calculated distance. The analysis groups features when similar high (hot) or low (cold) values are found in a cluster. The polygon features usually represent administration boundaries or a custom grid structure. If the value is high, it is a hot spot, vice versa.
+
+##### Computing local Gi* statistics
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+wm_idw <- MVR %>%
+  mutate(nb = st_contiguity(geometry),
+         wts = st_inverse_distance(nb, geometry,
+                                   scale = 1,
+                                   alpha = 1),
+         .before = 1)
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+HCSA <- wm_idw %>% 
+  mutate(local_Gi = local_gstar_perm(
+    `2021-07-01`, nb, wt, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+HCSA
+```
+
+### 7.2 Visualisng Hot Spot and Cold Spot Areas
+Now, we are ready to plot the significant (i.e. p-values less than 0.05) hot spot and cold spot areas by using appropriate tmap functions as shown below.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+HCSA_sig <- HCSA  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+tm_shape(HCSA) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig) +
+  tm_fill("gi_star",
+          n=5) + 
+  tm_borders(alpha = 0.4) +
+tm_layout(main.title = "GI* Vaccination Rate in July 2021",
+          main.title.position = "center",
+            main.title.size = 1,
+            legend.height = 0.5, 
+            legend.width = 0.4,
+            frame = TRUE)
+```
+
+Now, we will plot it for all months with a helper function.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+gi_star_plot <- function(varname, varname_two) {
+  HCSA <- wm_idw %>% 
+  mutate(local_Gi = local_gstar_perm(
+    varname, nb, wt, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+  
+  HCSA_sig <- HCSA  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+tm_shape(HCSA) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig) +
+  tm_fill("gi_star",
+          n=5) + 
+  tm_borders(alpha = 0.4) +
+tm_layout(main.title = varname_two,
+          main.title.position = "center",
+            main.title.size = 1,
+            legend.height = 0.5, 
+            legend.width = 0.4,
+            frame = TRUE)
+}
+```
+
+Let’s visualise the GI* plots for all months.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# split it up into multiple arranges to make it easier to see
+library(tmap)
+tmap_mode("plot")
+tmap_arrange(gi_star_plot(HCSA$`2021-07-01`, "2021-07-01"),
+             gi_star_plot(HCSA$`2021-08-01`, "2021-08-01"),
+             gi_star_plot(HCSA$`2021-09-01`, "2021-09-01"),
+             gi_star_plot(HCSA$`2021-10-01`, "2021-09-01"))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+tmap_arrange(gi_star_plot(HCSA$`2021-11-01`, "2021-11-01"),
+             gi_star_plot(HCSA$`2021-12-01`, "2021-12-01"),
+             gi_star_plot(HCSA$`2022-01-01`, "2022-01-01"),
+             gi_star_plot(HCSA$`2022-02-01`, "2022-02-01"))
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+tmap_arrange(gi_star_plot(HCSA$`2022-03-01`, "2022-03-01"),
+             gi_star_plot(HCSA$`2022-04-01`, "2022-04-01"),
+             gi_star_plot(HCSA$`2022-05-01`, "2022-05-01"),
+             gi_star_plot(HCSA$`2022-06-01`, "2022-06-01"))
+```
+
+### 7.3 Observations from Gi* Maps
+Looking at the placements of hot spots (green) and cold spots (yellow/orange), it coincides with the Quantile Choropleth maps that showed the sub-district which were pro-vaccination and anti-vaccination.
+
+## 8.0 Emerging Hot Spot Analysis (EHSA): sfdep methods
+Emerging Hot Spot Analysis (EHSA) is a spatio-temporal analysis method for revealing and describing how hot spot and cold spot areas evolve over time. The analysis consist of four main steps:
+
+-   Building a space-time cube,
+-   Calculating Getis-Ord local Gi* statistic for each bin by using an FDR correction,
+-   Evaluating these hot and cold spot trends by using Mann-Kendall trend test,
+-   Categorising each study area location by referring to the resultant trend z-score and p-value for each location with data, and with the hot spot z-score and p-value for each bin.
+
+### 8.1 Creating a Time Series Cube
+Since `spacetime()` requires a time_col to be numerical/integer, we need to create another column *Year*.
+```{r}
+
+```
+
+
+
+In the code chunk below, `spacetime()` of sfdep ised used to create an spatio-temporal cube.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+HCSA_st <- spacetime(HCSA, MVR,
+                      .loc_col = "Sub_District",
+                      .time_col = "Date")
+```
+
+
+
+
+
+
+
+
