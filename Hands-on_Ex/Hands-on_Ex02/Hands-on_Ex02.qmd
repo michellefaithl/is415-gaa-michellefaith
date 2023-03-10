@@ -3,33 +3,36 @@ title: "Hands-on_Ex02"
 ---
 
 # Getting started
+
 ```{r}
 pacman::p_load(sf, tmap, tidyverse)
 ```
 
 # importing geospatial data into R
+
 ```{r}
 mpsz <- st_read(dsn = "data/geospatial", 
                 layer = "MP14_SUBZONE_WEB_PL")
 ```
+
 You can examine the content of mpsz by using the code chunk below.
+
 ```{r}
 mpsz
 ```
 
 # Data Preparation
+
 Before a thematic map can be prepared, you are required to prepare a data table with year 2020 values. The data table should include the variables PA, SZ, YOUNG, ECONOMY ACTIVE, AGED, TOTAL, DEPENDENCY.
 
-YOUNG: age group 0 to 4 until age group 20 to 24,
-ECONOMY ACTIVE: age group 25-29 until age group 60-64,
-AGED: age group 65 and above,
-TOTAL: all age group, and
-DEPENDENCY: the ratio between young and aged against economy active group
+YOUNG: age group 0 to 4 until age group 20 to 24, ECONOMY ACTIVE: age group 25-29 until age group 60-64, AGED: age group 65 and above, TOTAL: all age group, and DEPENDENCY: the ratio between young and aged against economy active group
 
 # Importing data in R
+
 ### Data Wrangling
+
 ```{r}
-popdata <- read_csv("data/aspatial/respopagesextod2011to2020.csv")
+popdata <- read.csv("data/aspatial/respopagesextod2011to2020.csv")
 ```
 
 ```{r}
@@ -54,6 +57,7 @@ mutate(`DEPENDENCY` = (`YOUNG` + `AGED`)
 ```
 
 ### Joining the attribute data and geospatial data
+
 Before we can perform the georelational join, one extra step is required to convert the values in PA and SZ fields to uppercase. This is because the values of PA and SZ fields are made up of upper- and lowercase. On the other, hand the SUBZONE_N and PLN_AREA_N are in uppercase.
 
 ```{r}
@@ -72,13 +76,14 @@ mpsz_pop2020 <- left_join(mpsz, popdata2020,
 
 Thing to learn from the code chunk above:
 
-- left_join() of dplyr package is used with mpsz simple feature data frame as the left data table is to ensure that the output will be a simple features data frame.
+-   left_join() of dplyr package is used with mpsz simple feature data frame as the left data table is to ensure that the output will be a simple features data frame.
 
 ```{r}
 write_rds(mpsz_pop2020, "data/rds/mpszpop2020.rds")
 ```
 
 ### Joining the attribute data and geospatial data
+
 Before we can perform the georelational join, one extra step is required to convert the values in PA and SZ fields to uppercase. This is because the values of PA and SZ fields are made up of upper- and lowercase. On the other, hand the SUBZONE_N and PLN_AREA_N are in uppercase.
 
 ```{r}
@@ -97,34 +102,39 @@ mpsz_pop2020 <- left_join(mpsz, popdata2020,
 
 Thing to learn from the code chunk above:
 
-- left_join() of dplyr package is used with mpsz simple feature data frame as the left data table is to ensure that the output will be a simple features data frame.
+-   left_join() of dplyr package is used with mpsz simple feature data frame as the left data table is to ensure that the output will be a simple features data frame.
 
 ```{r}
 write_rds(mpsz_pop2020, "data/rds/mpszpop2020.rds")
 ```
 
 # Choropleth Mapping Geospatial Data Using tmap
+
 Two approaches can be used to prepare thematic map using tmap, they are:
 
-- Plotting a thematic map quickly by using qtm().
-- Plotting highly customisable thematic map by using tmap elements.
+-   Plotting a thematic map quickly by using qtm().
+-   Plotting highly customisable thematic map by using tmap elements.
 
 ### Plotting a choropleth map quickly by using qtm()
+
 The easiest and quickest to draw a choropleth map using tmap is using qtm(). It is concise and provides a good default visualisation in many cases.
 
 The code chunk below will draw a cartographic standard choropleth map as shown below.
+
 ```{r}
 tmap_mode("plot")
 qtm(mpsz_pop2020, 
     fill = "DEPENDENCY")
 ```
+
 Things to learn from the code chunk above:
 
-- tmap_mode() with “plot” option is used to produce a static map. For interactive mode, “view” option should be used.
-- fill argument is used to map the attribute (i.e. DEPENDENCY)
+-   tmap_mode() with "plot" option is used to produce a static map. For interactive mode, "view" option should be used.
+-   fill argument is used to map the attribute (i.e. DEPENDENCY)
 
-### Creating a choropleth map by using tmap’s elements
-Despite its usefulness of drawing a choropleth map quickly and easily, the disadvantge of qtm() is that it makes aesthetics of individual layers harder to control. To draw a high quality cartographic choropleth map as shown in the figure below, tmap’s drawing elements should be used.
+### Creating a choropleth map by using tmap's elements
+
+Despite its usefulness of drawing a choropleth map quickly and easily, the disadvantge of qtm() is that it makes aesthetics of individual layers harder to control. To draw a high quality cartographic choropleth map as shown in the figure below, tmap's drawing elements should be used.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -160,6 +170,7 @@ tm_shape(mpsz_pop2020) +
 ```
 
 #### Drawing a choropleth map using tm_polygons()
+
 To draw a choropleth map showing the geographical distribution of a selected variable by planning subzone, we just need to assign the target variable such as Dependency to tm_polygons().
 
 ```{r}
@@ -169,9 +180,9 @@ tm_shape(mpsz_pop2020)+
 
 Things to learn from tm_polygons():
 
-- The default interval binning used to draw the choropleth map is called “pretty”. A detailed discussion of the data classification methods supported by tmap will be provided in sub-section 4.3.
-- The default colour scheme used is YlOrRd of ColorBrewer. You will learn more about the color scheme in sub-section 4.4.
-- By default, Missing value will be shaded in grey.
+-   The default interval binning used to draw the choropleth map is called "pretty". A detailed discussion of the data classification methods supported by tmap will be provided in sub-section 4.3.
+-   The default colour scheme used is YlOrRd of ColorBrewer. You will learn more about the color scheme in sub-section 4.4.
+-   By default, Missing value will be shaded in grey.
 
 #### Drawing a choropleth map using tm_fill() and **tm_border()**
 
@@ -193,17 +204,19 @@ tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY") +
   tm_borders(lwd = 0.1,  alpha = 1)
 ```
+
 Notice that light-gray border lines have been added on the choropleth map.
 
 The alpha argument is used to define transparency number between 0 (totally transparent) and 1 (not transparent). By default, the alpha value of the col is used (normally 1).
 
 Beside alpha argument, there are three other arguments for tm_borders(), they are:
 
-- col = border colour,
-- lwd = border line width. The default is 1, and
-- lty = border line type. The default is “solid”.
+-   col = border colour,
+-   lwd = border line width. The default is 1, and
+-   lty = border line type. The default is "solid".
 
 ### Data classification methods of tmap
+
 Most choropleth maps employ some methods of data classification. The point of classification is to take a large number of observations and group them into data ranges or classes.
 
 tmap provides a total ten data classification methods, namely: fixed, sd, equal, pretty (default), quantile, kmeans, hclust, bclust, fisher, and jenks.
@@ -211,6 +224,7 @@ tmap provides a total ten data classification methods, namely: fixed, sd, equal,
 To define a data classification method, the style argument of tm_fill() or tm_polygons() will be used.
 
 #### Plotting choropleth maps with built-in classification methods
+
 The code chunk below shows a quantile data classification that used 5 classes.
 
 ```{r}
@@ -231,7 +245,4 @@ tm_shape(mpsz_pop2020)+
   tm_borders(alpha = 0.5)
 ```
 
-
 Notice that the distribution of quantile data classification method are more evenly distributed then equal data classification method.
-
-

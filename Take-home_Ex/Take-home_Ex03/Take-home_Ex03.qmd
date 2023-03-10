@@ -1,0 +1,29 @@
+---
+title: "Take-home Exercise 3: Predicting HDB Public Housing Resale Pricies using Geographically Weighted Methods"
+date: "10 March 2023"
+date-modified: "r Sys.Date()"
+execute: 
+  eval: true
+  echo: true
+  warning: false
+editor: visual
+---
+
+## 1.0 Overview
+
+### 1.1 Background
+Housing is an essential component of household wealth worldwide. Buying a housing has always been a major investment for most people. The price of housing is affected by many factors. Some of them are global in nature such as the general economy of a country or inflation rate. Others can be more specific to the properties themselves. These factors can be further divided to structural and locational factors. Structural factors are variables related to the property themselves such as the size, fitting, and tenure of the property. Locational factors are variables related to the neighbourhood of the properties such as proximity to childcare centre, public transport service and shopping centre.
+
+Conventional, housing resale prices predictive models were built by using **Ordinary Least Square (OLS)** method. However, this method failed to take into consideration that spatial autocorrelation and spatial heterogeneity exist in geographic data sets such as housing transactions. With the existence of spatial autocorrelation, the OLS estimation of predictive housing resale pricing models could lead to biased, inconsistent, or inefficient results (Anselin 1998). In view of this limitation, **Geographical Weighted Models** were introduced for calibrating predictive model for housing resale prices.
+
+### 1.2 Problem Statement
+To predict HDB resale prices at the sub-market level (i.e. HDB 3-room, HDB 4-room and HDB 5-room) for the month of **January and February 2023** in Singapore. The predictive models must be built by using by using conventional OLS method and GWR methods. You are also required to compare the performance of the conventional OLS method versus the geographical weighted methods.
+
+### 1.3 The Data
+
+#### 1.3.1 Aspatial Data
+For the purpose of this take-home exercise, [HDB Resale Flat Prices](https://data.gov.sg/dataset/resale-flat-prices) provided by Data.gov.sg should be used as the core data set. The study should focus on either three-room, four-room or five-room flat and transaction period should be from 1st January 2021 to 31st December 2022. The test data should be January and February 2023 resale prices.
+
+
+
+
