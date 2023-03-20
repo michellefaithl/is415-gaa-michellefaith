@@ -22,7 +22,16 @@ To predict HDB resale prices at the sub-market level (i.e. HDB 3-room, HDB 4-roo
 ### 1.3 The Data
 
 #### 1.3.1 Aspatial Data
-For the purpose of this take-home exercise, [HDB Resale Flat Prices](https://data.gov.sg/dataset/resale-flat-prices) provided by Data.gov.sg should be used as the core data set. The study should focus on either three-room, four-room or five-room flat and transaction period should be from 1st January 2021 to 31st December 2022. The test data should be January and February 2023 resale prices.
+For the purpose of this take-home exercise, [HDB Resale Flat Prices](https://data.gov.sg/dataset/resale-flat-prices) provided by Data.gov.sg should be used as the core data set. The study should focus on either three-room, four-room or five-room flat and transaction period should be from **1st January 2021 to 31st December 2022**. The test data should be January and February 2023 resale prices.
+
+#### 1.3.2 Spatial Data
+For the spatial data, we will be using the Master Plan 2019 Subzone Boundary (No Sea), which can be downloaded from [data.gov](https://data.gov.sg/dataset/master-plan-2019-subzone-boundary-no-sea).
+
+
+
+
+
+
 
 
 
