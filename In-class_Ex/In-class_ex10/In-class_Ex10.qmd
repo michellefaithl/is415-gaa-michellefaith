@@ -129,7 +129,7 @@ hexagon_Hansen <- bind_cols(hexagons, acc_Hansen)
 mapex <- st_bbox(hexagons)
 ```
 
-```{r}
+```{r fig.width=12, fig.height=8}
 tmap_mode("plot")
 tm_shape(hexagon_Hansen,
          bbox = mapex) + 
@@ -185,7 +185,7 @@ acc_KD2SFCA <- tbl_df(acc_KD2SFCA)
 hexagon_KD2SFCA <- bind_cols(hexagons, acc_KD2SFCA)
 ```
 
-```{r}
+```{r fig.width=12, fig.height=8}
 tmap_mode("plot")
 tm_shape(hexagon_KD2SFCA,
          bbox = mapex) + 
@@ -242,7 +242,7 @@ colnames(acc_SAM) <- "accSAM"
 acc_SAM <- tbl_df(acc_SAM)
 hexagon_SAM <- bind_cols(hexagons, acc_SAM)
 ```
-```{r}
+```{r fig.width=12, fig.height=8}
 tmap_mode("plot")
 tm_shape(hexagon_SAM,
          bbox = mapex) + 
