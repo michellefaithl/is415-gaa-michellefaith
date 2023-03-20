@@ -12,26 +12,98 @@ editor: visual
 ## 1.0 Overview
 
 ### 1.1 Background
+
 Housing is an essential component of household wealth worldwide. Buying a housing has always been a major investment for most people. The price of housing is affected by many factors. Some of them are global in nature such as the general economy of a country or inflation rate. Others can be more specific to the properties themselves. These factors can be further divided to structural and locational factors. Structural factors are variables related to the property themselves such as the size, fitting, and tenure of the property. Locational factors are variables related to the neighbourhood of the properties such as proximity to childcare centre, public transport service and shopping centre.
 
 Conventional, housing resale prices predictive models were built by using **Ordinary Least Square (OLS)** method. However, this method failed to take into consideration that spatial autocorrelation and spatial heterogeneity exist in geographic data sets such as housing transactions. With the existence of spatial autocorrelation, the OLS estimation of predictive housing resale pricing models could lead to biased, inconsistent, or inefficient results (Anselin 1998). In view of this limitation, **Geographical Weighted Models** were introduced for calibrating predictive model for housing resale prices.
 
 ### 1.2 Problem Statement
+
 To predict HDB resale prices at the sub-market level (i.e. HDB 3-room, HDB 4-room and HDB 5-room) for the month of **January and February 2023** in Singapore. The predictive models must be built by using by using conventional OLS method and GWR methods. You are also required to compare the performance of the conventional OLS method versus the geographical weighted methods.
 
 ### 1.3 The Data
 
 #### 1.3.1 Aspatial Data
+
 For the purpose of this take-home exercise, [HDB Resale Flat Prices](https://data.gov.sg/dataset/resale-flat-prices) provided by Data.gov.sg should be used as the core data set. The study should focus on either three-room, four-room or five-room flat and transaction period should be from **1st January 2021 to 31st December 2022**. The test data should be January and February 2023 resale prices.
 
 #### 1.3.2 Spatial Data
-For the spatial data, we will be using the Master Plan 2019 Subzone Boundary (No Sea), which can be downloaded from [data.gov](https://data.gov.sg/dataset/master-plan-2019-subzone-boundary-no-sea).
 
+For the spatial data, we will be using the Master Plan 2019 Subzone Boundary (No Sea), which can be downloaded from [data.gov.sg](https://data.gov.sg/dataset/master-plan-2019-subzone-boundary-no-sea).
 
+#### 1.3.3 Locational factors with geographic factors
 
+Downloaded from **Data.gov.sg**:
 
+-   [Eldercare](https://data.gov.sg/dataset/eldercare-services), shapefile format
 
+-   [Hawker Centre](https://data.gov.sg/dataset/hawker-centres), geojson format
 
+-   [Parks](https://data.gov.sg/dataset/parkssg), shapefile format
+
+-   [Supermarket](https://data.gov.sg/dataset/supermarkets), geojson format
+
+Downloaded from **Datamall.lta.gov.sg**:
+
+-   [MRT list](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=mrt) in Singapore, shapefile format
+
+-   [Bus stops](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop), shapefile format
+
+Retrieved/Scraped from other sources
+
+-   Good primary schools from [Local Salary Forum](https://www.salary.sg/2021/best-primary-schools-2021-by-popularity), which is a list of primary schools that are ordered in ranking based on popularity
+
+### 1.4 The Task
+
+In this take-home exercise, you are tasked to predict HDB resale prices at the sub-market level (i.e. HDB 3-room, HDB 4-room and HDB 5-room) for the month of January and February 2023 in Singapore. The **predictive models** must be built by using by using **conventional OLS method** and **GWR methods**. You are also required to compare the performance of the conventional OLS method versus the geographical weighted methods.
+
+## 2.0 Getting Started
+
+The R packages we'll use for this analysis are:
+
+-   **olsrr**: R package for building OLS and performing diagnostic tests
+
+-   **GWmodel**: R package for calibrating geographical weighted family of models
+
+-   **corrplot**: R package for multivariate data visualistion and analysis
+
+-   **sf**: spatial data handling
+
+-   **tidyverse**: attribute data handling, especially **readr**, **ggplot2** and **dplyr**
+
+-   **tmap**: choropleth mapping
+
+```{r}
+pacman::p_load(olsrr, corrplot, ggpubr, sf, spdep, GWmodel, tmap, tidyverse, gtsummary)
+```
+
+## 3.0 Data Wrangling: Geospatial Data
+
+### 3.1 Importing Geospatial Data
+
+```{r}
+mpsz <- st_read(dsn = "data/geospatial", 
+                layer = "MPSZ-2019")
+```
+
+```{r}
+rail_network_sf <- st_read(dsn="data/geospatial", layer="RapidTransitSystemStation")
+```
+```{r}
+bus_sf <- st_read(dsn="data/geospatial", layer="BusStop")
+```
+```{r}
+eldercare_sf <- st_read(dsn="data/geospatial", layer="ELDERCARE")
+```
+```{r}
+#hawker_sf <- st_read(dsn="data/geospatial", layer="hawker-centres-geojson.geojson")
+```
+```{r}
+park_sf <- st_read(dsn="data/geospatial", layer="RelaxSG")
+```
+```{r}
+#supermarket_sf <- st_read(dsn="data/geospatial", layer="supermarkets-geojson.geojson")
+```
 
 
 
