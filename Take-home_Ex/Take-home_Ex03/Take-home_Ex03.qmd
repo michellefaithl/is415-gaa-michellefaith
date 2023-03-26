@@ -25,7 +25,7 @@ To predict HDB resale prices at the sub-market level (i.e. HDB 3-room, HDB 4-roo
 
 #### 1.3.1 Aspatial Data
 
-For the purpose of this take-home exercise, [HDB Resale Flat Prices](https://data.gov.sg/dataset/resale-flat-prices) provided by Data.gov.sg should be used as the core data set. The study should focus on either three-room, four-room or five-room flat and transaction period should be from **1st January 2021 to 31st December 2022**. The test data should be January and February 2023 resale prices.
+For the purpose of this take-home exercise, [HDB Resale Flat Prices](https://data.gov.sg/dataset/resale-flat-prices) provided by Data.gov.sg should be used as the core data set. The study will focus on three-room flat and transaction period should be from **1st January 2021 to 31st December 2022**. The test data should be January and February 2023 resale prices.
 
 #### 1.3.2 Spatial Data
 
@@ -41,11 +41,9 @@ Downloaded from **Data.gov.sg**:
 
 -   [Parks](https://data.gov.sg/dataset/parkssg), shapefile format
 
--   [Supermarket](https://data.gov.sg/dataset/supermarkets), geojson format
-
 Downloaded from **Datamall.lta.gov.sg**:
 
--   [MRT list](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=mrt) in Singapore, shapefile format
+-   [MRT list](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=train%20station%20exit%20point) in Singapore, shapefile format
 
 -   [Bus stops](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop), shapefile format
 
@@ -74,7 +72,9 @@ The R packages we'll use for this analysis are:
 -   **tmap**: choropleth mapping
 
 ```{r}
-pacman::p_load(olsrr, corrplot, ggpubr, sf, spdep, GWmodel, tmap, tidyverse, gtsummary)
+#| code-fold: true
+#| code-summary: "Show the code"
+pacman::p_load(olsrr, corrplot, ggpubr, sf, spdep, GWmodel, tmap, tidyverse, gtsummary, jsonlite)
 ```
 
 ## 3.0 Data Wrangling: Geospatial Data
@@ -82,29 +82,478 @@ pacman::p_load(olsrr, corrplot, ggpubr, sf, spdep, GWmodel, tmap, tidyverse, gts
 ### 3.1 Importing Geospatial Data
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 mpsz <- st_read(dsn = "data/geospatial", 
                 layer = "MPSZ-2019")
 ```
 
 ```{r}
-rail_network_sf <- st_read(dsn="data/geospatial", layer="RapidTransitSystemStation")
+#| code-fold: true
+#| code-summary: "Show the code"
+rail_network_sf <- st_read(dsn="data/geospatial", layer="Train_Station_Exit_Layer")
 ```
+
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 bus_sf <- st_read(dsn="data/geospatial", layer="BusStop")
 ```
+
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 eldercare_sf <- st_read(dsn="data/geospatial", layer="ELDERCARE")
 ```
+
 ```{r}
-#hawker_sf <- st_read(dsn="data/geospatial", layer="hawker-centres-geojson.geojson")
+#| code-fold: true
+#| code-summary: "Show the code"
+hawker_sf <- st_read("data/geospatial/hawker-centres-geojson.geojson")
 ```
+
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 park_sf <- st_read(dsn="data/geospatial", layer="RelaxSG")
 ```
+
+From this, we can see that some of the CRS is in SVY21 and WGS84. We'll address this in section 3.3.
+
+### 3.2 Data Pre-processing
+
+Here are some things that we need to do:
+
+1.  Remove Z-dimensions
+
+2.  Remove unnecessary columns
+
+3.  Check for invalid geometries
+
+4.  Check for missing values
+
+#### 3.2.1 Remove Z-dimensions
+
+For hawker_sf, we can see that the geometries are in Z-dimensions. To tackle this, we will use `st_zm()` to drop Z-dimensions and appropriately reset the classes.
+
 ```{r}
-#supermarket_sf <- st_read(dsn="data/geospatial", layer="supermarkets-geojson.geojson")
+#| code-fold: true
+#| code-summary: "Show the code"
+hawker_sf <- st_zm(hawker_sf)
 ```
 
+#### 3.2.2 Remove unnecessary columns
 
+For the locational factor dataframes, we will require the name of the amenity and its geometry column. Hence, we will need to keep the name column with select(c(n)), using the relevant column number n.
 
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+eldercare_sf <- eldercare_sf %>%
+  select(c(11))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+hawker_sf <- hawker_sf %>%
+  select(c(1))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+bus_sf <- bus_sf %>%
+  select(c(3))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+park_sf <- park_sf %>%
+  select(c(6))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+rail_network_sf <- rail_network_sf %>%
+  select(c(1))
+```
+
+#### 3.2.3 Invalid Geometries
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# function breakdown:
+# the st_is_valid function checks whether a geometry is valid
+# which returns the indices of certain values based on logical conditions
+# length returns the length of data objects
+
+# checks for the number of geometries that are NOT valid
+length(which(st_is_valid(bus_sf) == FALSE))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+length(which(st_is_valid(eldercare_sf) == FALSE))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+length(which(st_is_valid(hawker_sf) == FALSE))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+length(which(st_is_valid(mpsz) == FALSE))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+length(which(st_is_valid(park_sf) == FALSE))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+length(which(st_is_valid(rail_network_sf) == FALSE))
+```
+
+From the outputs, we can see that mpsz has 6 invalid geometries. With the use of `st_make_valid`, we can address these invalid geometries.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# st_make_valid takes in an invalid geometry and outputs a valid one with the lwgeom_makevalid method
+mpsz <- st_make_valid(mpsz)
+length(which(st_is_valid(mpsz) == FALSE))
+```
+
+Now, we have completed the pre-processing for the geospatial data!
+
+### 3.3 Verifying + Transforming Coordinate System
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# using st_crs() function to check on the CRS and ESPG Codes
+st_crs(bus_sf)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(eldercare_sf)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(hawker_sf)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(mpsz)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(park_sf)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(rail_network_sf)
+```
+
+Some of the projected CRS is WGS84. Let's change it to SVY21 (ESPG Code 3414).
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# with st_transform(), we can change from one CRS to another
+hawker_sf <- st_transform(hawker_sf, crs=3414)
+mpsz <- st_transform(mpsz, crs=3414)
+```
+
+Now, let's see if they are in the correct CRS.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(hawker_sf)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(mpsz)
+```
+
+### 3.4 Initial Visualisation
+
+Let's try visualising the data. First, we will visualise the SG map with subzones.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# plots the geometry only - these are the 'base' maps
+# alternatively, we can use plot(sg$geometry)
+plot(st_geometry(mpsz))
+```
+
+Next, let's look at the MRT and LRT stations.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# switching to interactive map for better visualisation and to explore specific areas if needed
+tmap_mode("view")
+tm_shape(rail_network_sf) +
+  tm_dots(col="red", size=0.05)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# return tmap mode to plot for future visualisations
+tmap_mode("plot")
+```
+
+Next, let's visualise the bus stops.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+tmap_mode("plot")
+tm_shape(mpsz) +
+  tm_borders(alpha = 0.5) +
+  tmap_options(check.and.fix = TRUE) +
+tm_shape(bus_sf) +
+  tm_dots(col="blue", size=0.05) +
+  tm_layout(main.title = "Bus Stops",
+          main.title.position = "center",
+          main.title.size = 1.2,
+          frame = TRUE)
+```
+
+Last but not least, let's visual our locational factors.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+tmap_mode("view")
+tm_shape(eldercare_sf) +
+  tm_dots(alpha=0.5, #affects transparency of points
+          col="red",
+          size=0.05) +
+tm_shape(park_sf) +
+  tm_dots(alpha=0.5,
+          col="green",
+          size=0.05)
+```
+
+## 4.0 Data Wrangling: Aspatial Data
+
+### 4.1 Importing Aspatial Data
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale <- read_csv("data/aspatial/resale-flat-prices-based-on-registration-date-from-jan-2017-onwards.csv", show_col_types=FALSE)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+glimpse(resale)
+```
+
+Remember that we will focus on three-room flat and transaction period should be from **1st January 2021 to 31st December 2022**. The test data should be **January and February 2023 resale prices**.
+
+Let's start to filter the data for training and testing first.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+# Data we want is from jan-21 to feb-23
+# 3-room flats 
+resale <- resale %>% 
+  filter(flat_type == "3 ROOM") %>%
+  filter(month >= "2021-01" & month < "2023-02")
+```
+
+Now let's geocode the aspatial data and add its longitude and latitude features using **OneMapSG API**.
+
+### 4.2 Geocoding Aspatial Data
+
+Let's create a geocoding function with the following steps:
+
+1.  Pass the address as the searchVal in the query
+
+2.  Send the query to OneMapSG search
+
+3.  Convert response (JSON object) to text
+
+4.  Save response in text form as a dataframe
+
+5.  For our output, we will only need to retain the latitude and longitude
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+#| code-fold: true
+#| code-summary: "Show the code"
+library(httr)
+geocode <- function(block, street_name) {
+  base_url <- "https://developers.onemap.sg/commonapi/search"
+  address <- paste(block, street_name, sep = " ")
+  query <- list("searchVal" = address, 
+                "returnGeom" = "Y",
+                "getAddrDetails" = "N",
+                "pageNum" = "1")
+  
+  res <- GET(base_url, query = query)
+  restext<-content(res, as="text")
+  
+  output <- fromJSON(restext)  %>% 
+    as.data.frame %>%
+    select(results.LATITUDE, results.LONGITUDE)
+
+  return(output)
+}
+```
+
+Now we can execute the geocoding function.
+
+`
+resale$LATITUDE <- 0
+resale$LONGITUDE <- 0
+
+for (i in 1:nrow(resale)){
+  temp_output <- geocode(resale[i, 4], resale[i, 5])
+  
+  resale$LATITUDE[i] <- temp_output$results.LATITUDE
+  resale$LONGITUDE[i] <- temp_output$results.LONGITUDE
+`
+
+### 4.3 Remaining Data Pre-Processing
+
+#### 4.3.1 Missing Values
+
+`
+sum(is.na(resale$LATITUDE))
+sum(is.na(resale$LONGITUDE))
+`
+
+This means there is no NA values.
+
+#### 4.3.2 Convert into sf object + transforming coordinate system
+
+Now, we have to transform our dataframe into an sf object, and then verify and transform our assigned CRS for our aspatial datasets.
+
+`resale_sf <- st_as_sf(resale, 
+                      coords = c("LONGITUDE", 
+                                 "LATITUDE"), 
+                      # the geographical features are in longitude & latitude, in decimals
+                      # as such, WGS84 is the most appropriate coordinates system
+                      crs=4326) %>%
+  #afterwards, we transform it to SVY21, our desired CRS
+  st_transform(crs = 3414)
+`
+
+### 4.4 Saving the dataset
+
+we can save the data set as a SHP file.
+
+`
+st_write(resale_sf, "data/geospatial/resale-final.shp")
+`
+
+## 5.0 Exploratory Data Analysis (EDA)
+
+In the section, you will learn how to use statistical graphics functions of ggplot2 package to perform EDA.
+
+Let's start by loading our data set.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- st_read(dsn="data/geospatial", layer="resale-final")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+glimpse(resale_sf)
+```
+
+### 5.1 EDA using statistical graphics
+
+We can plot the distribution of SELLING_PRICE by using appropriate Exploratory Data Analysis (EDA) as shown in the code chunk below.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+ggplot(data=resale_sf, aes(x=`rsl_prc`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+```
+
+The figure above shows a right skewed distribution, which means that more resale flats were sold at relative lower prices.
+
+Since this is skewed, we would want to normalise it by using log transformation.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- resale_sf %>%
+  mutate(`LOG_SELLING_PRICE` = log(rsl_prc))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+ggplot(data=resale_sf, aes(x=`LOG_SELLING_PRICE`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+```
+
+Now, the distribution is relatively less skewed after the log transformation.
+
+### 5.2 Drawing Statistical Point Map
+
+We want to visualise the geospatial distribution of resale prices in Singapore. For this,w e will be using tmap package.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+tmap_mode("view")
+tm_shape(mpsz)+
+  tm_polygons() +
+tm_shape(resale_sf) +  
+  tm_dots(col = "rsl_prc",
+          alpha = 0.6,
+          style="quantile") +
+  tm_view(set.zoom.limits = c(11,14))
+```
+
+```{r}
+tmap_mode("plot")
+```
+
+## 6.0 Hedonic Pricing Modelling in R
+
+### 6.1 Simple Linear Regression Method
+
+```{r}
+resale_slr <- lm(formula=rsl_prc ~ flr_r_s, data = resale_sf)
+```
 
