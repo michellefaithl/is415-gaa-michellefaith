@@ -33,7 +33,7 @@ For the spatial data, we will be using the Master Plan 2019 Subzone Boundary (No
 
 #### 1.3.3 Locational factors with geographic factors
 
-Downloaded from **Data.gov.sg**:
+Downloaded from **Data.gov.sg** and **datamall.lta.gov.sg**:
 
 -   [Eldercare](https://data.gov.sg/dataset/eldercare-services), shapefile format
 
@@ -46,6 +46,8 @@ Downloaded from **Datamall.lta.gov.sg**:
 -   [MRT list](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=train%20station%20exit%20point) in Singapore, shapefile format
 
 -   [Bus stops](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html?searchText=bus%20stop), shapefile format
+
+-   [Primary Schools](https://data.gov.sg/dataset/school-directory-and-information)
 
 Retrieved/Scraped from other sources
 
@@ -74,7 +76,7 @@ The R packages we'll use for this analysis are:
 ```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
-pacman::p_load(olsrr, corrplot, ggpubr, sf, spdep, GWmodel, tmap, tidyverse, gtsummary, jsonlite)
+pacman::p_load(sf, tidyverse, tmap, jsonlite, rvest, onemapsgapi, olsrr, corrplot, ggpubr, spdep, GWmodel, gtsummary, ggthemes, zoo, SpatialML, tmap, rsample, Metrics, matrixStats, kableExtra)
 ```
 
 ## 3.0 Data Wrangling: Geospatial Data
@@ -119,6 +121,7 @@ park_sf <- st_read(dsn="data/geospatial", layer="RelaxSG")
 ```
 
 From this, we can see that some of the CRS is in SVY21 and WGS84. We'll address this in section 3.3.
+
 
 ### 3.2 Data Pre-processing
 
@@ -283,6 +286,10 @@ Some of the projected CRS is WGS84. Let's change it to SVY21 (ESPG Code 3414).
 #| code-summary: "Show the code"
 # with st_transform(), we can change from one CRS to another
 hawker_sf <- st_transform(hawker_sf, crs=3414)
+bus_sf <- st_transform(bus_sf, crs=3414)
+eldercare_sf <- st_transform(eldercare_sf, crs=3414)
+park_sf <- st_transform(park_sf, crs=3414)
+rail_network_sf <- st_transform(rail_network_sf, crs=3414)
 mpsz <- st_transform(mpsz, crs=3414)
 ```
 
@@ -390,7 +397,7 @@ Let's start to filter the data for training and testing first.
 # 3-room flats 
 resale <- resale %>% 
   filter(flat_type == "3 ROOM") %>%
-  filter(month >= "2021-01" & month < "2023-02")
+  filter(month >= "2021-01" & month <= "2023-02")
 ```
 
 Now let's geocode the aspatial data and add its longitude and latitude features using **OneMapSG API**.
@@ -409,8 +416,7 @@ Let's create a geocoding function with the following steps:
 
 5.  For our output, we will only need to retain the latitude and longitude
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(eval = FALSE)
+```{r}
 #| code-fold: true
 #| code-summary: "Show the code"
 library(httr)
@@ -435,8 +441,7 @@ geocode <- function(block, street_name) {
 
 Now we can execute the geocoding function.
 
-`
-resale$LATITUDE <- 0
+`resale$LATITUDE <- 0
 resale$LONGITUDE <- 0
 
 for (i in 1:nrow(resale)){
@@ -444,16 +449,14 @@ for (i in 1:nrow(resale)){
   
   resale$LATITUDE[i] <- temp_output$results.LATITUDE
   resale$LONGITUDE[i] <- temp_output$results.LONGITUDE
+}
 `
 
 ### 4.3 Remaining Data Pre-Processing
 
 #### 4.3.1 Missing Values
 
-`
-sum(is.na(resale$LATITUDE))
-sum(is.na(resale$LONGITUDE))
-`
+`sum(is.na(resale$LATITUDE)) sum(is.na(resale$LONGITUDE))`
 
 This means there is no NA values.
 
@@ -461,35 +464,442 @@ This means there is no NA values.
 
 Now, we have to transform our dataframe into an sf object, and then verify and transform our assigned CRS for our aspatial datasets.
 
-`resale_sf <- st_as_sf(resale, 
-                      coords = c("LONGITUDE", 
-                                 "LATITUDE"), 
-                      # the geographical features are in longitude & latitude, in decimals
-                      # as such, WGS84 is the most appropriate coordinates system
-                      crs=4326) %>%
-  #afterwards, we transform it to SVY21, our desired CRS
-  st_transform(crs = 3414)
-`
+`resale_sf <- st_as_sf(resale, coords = c("LONGITUDE", "LATITUDE"),` `crs=4326) %>%  st_transform(crs = 3414)`
+
+
+#### 4.3.3 Remaining Lease
+We want to convert the remaining lease from years and months to years.
+```{r}
+resale_sf <- st_read(dsn="data/geospatial", layer="resale-final")
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+str_list <- str_split(resale_sf$rmnng_l, " ")
+
+for (i in 1:length(str_list)) {
+  if (length(unlist(str_list[i])) > 2) {
+      year <- as.numeric(unlist(str_list[i])[1])
+      month <- as.numeric(unlist(str_list[i])[3])
+      resale_sf$rmnng_l[i] <- year + round(month/12, 2)
+  }
+  else {
+    year <- as.numeric(unlist(str_list[i])[1])
+    resale_sf$rmnng_l[i] <- year
+  }
+}
+```
+
+Let's ensure that the output is numeric.
+```{r}
+resale_sf$rmnng_l <- as.numeric(resale_sf$rmnng_l)
+```
+
+
+#### 4.3.4 Floor level
+The floor level is retrieved by first sorting the storeys in ascending order, then assigning a numerical value to each category.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+storeys <- sort(unique(resale_sf$stry_rn))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+storey_order <- 1:length(storeys)
+storey_range_order <- data.frame(storeys, storey_order)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- left_join(resale_sf, storey_range_order, by= c("stry_rn" = "storeys"))
+```
 
 ### 4.4 Saving the dataset
 
 we can save the data set as a SHP file.
 
-`
-st_write(resale_sf, "data/geospatial/resale-final.shp")
-`
+`st_write(resale_sf, "data/geospatial/resale-final.shp")
 
-## 5.0 Exploratory Data Analysis (EDA)
+
+## 5.0 Dealing with locational factors
+### 5.1 Calculating Proximity
+This can be done with the use of `st_distance`, which will retrieve the minimum distance from origin to destination.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+get_prox <- function(origin_df, dest_df, col_name){
+  
+  dist_matrix <- st_distance(origin_df, dest_df)           
+  
+  near <- origin_df %>% 
+    mutate(PROX = apply(dist_matrix, 1, function(x) min(x)) / 1000) 
+  
+  names(near)[names(near) == 'PROX'] <- col_name
+
+  # Return df
+  return(near)
+}
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- get_prox(resale_sf, eldercare_sf, "PROX_ELDERCARE") 
+resale_sf <- get_prox(resale_sf, rail_network_sf, "PROX_MRT")
+resale_sf <- get_prox(resale_sf, hawker_sf, "PROX_HAWKER") 
+resale_sf <- get_prox(resale_sf, park_sf, "PROX_PARK") 
+resale_sf <- get_prox(resale_sf, bus_sf, "PROX_BUS")
+```
+
+### 5.2 Calcucate the number of Amenities
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+get_within <- function(origin_df, dest_df, threshold_dist, col_name){
+  
+  # creates a matrix of distances
+  dist_matrix <- st_distance(origin_df, dest_df)   
+  
+  # count the number of location_factors within threshold_dist and create new data frame
+  wdist <- origin_df %>% 
+    mutate(WITHIN_DT = apply(dist_matrix, 1, function(x) sum(x <= threshold_dist)))
+  
+  # rename column name according to input parameter
+  names(wdist)[names(wdist) == 'WITHIN_DT'] <- col_name
+
+  # Return df
+  return(wdist)
+}
+```
+
+#### 5.2.1 Number of eldercare centres within 350m
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- get_within(resale_sf, eldercare_sf, 350, "WITHIN_350M_ELDERCARE")
+```
+
+#### 5.2.2 Number of bus stops within 350m
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- get_within(resale_sf, bus_sf, 350, "WITHIN_350M_BUS_STOPS")
+```
+
+#### 5.2.3 Number of parks within 350m
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- get_within(resale_sf, park_sf, 350, "WITHIN_350M_PARKS")
+```
+
+### 5.3 Factors without geographic coordinates
+#### 5.3.1 CBD
+First, we will tackle CBD.
+Get the coordinates of Singapore’s Central Business District in Downtown Core using latlong.net: 1.287953, 103.851784
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+name <- c('CBD')
+latitude= c(1.287953)
+longitude= c(103.851784)
+cbd <- data.frame(name, latitude, longitude)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+cbd_sf <- st_as_sf(cbd, coords = c("longitude", "latitude"), crs = 4326) %>%
+  st_transform(crs = 3414)
+```
+
+Check that the CBD data is in the correct CRS.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+st_crs(cbd_sf)
+```
+Use the previously defined `get_prox` function
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- get_prox(resale_sf, cbd_sf, "PROX_CBD") 
+```
+
+#### 5.3.2 Primary Schools
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+pri_sch <- read_csv("data/geospatial/general-information-of-schools.csv")
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+pri_sch <- pri_sch %>%
+  filter(mainlevel_code == "PRIMARY") %>%
+  select(school_name, address, postal_code, mainlevel_code)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+glimpse(pri_sch)
+```
+
+We will create another geocoding function to find the lat and lon for primarys schools.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+geocode_pri_sch <- function(postal_code) {
+  base_url <- "https://developers.onemap.sg/commonapi/search"
+  query <- list("searchVal" = postal_code, 
+                "returnGeom" = "Y",
+                "getAddrDetails" = "N",
+                "pageNum" = "1")
+  
+  res <- GET(base_url, query = query)
+  restext<-content(res, as="text")
+  
+  output <- fromJSON(restext)  %>% 
+    as.data.frame %>%
+    select(results.LATITUDE, results.LONGITUDE)
+
+  return(output)
+}
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+pri_sch$LATITUDE <- 0
+pri_sch$LONGITUDE <- 0
+
+for (i in 1:nrow(pri_sch)){
+  temp_output <- geocode_pri_sch(pri_sch[i, 3])
+  
+  pri_sch$LATITUDE[i] <- temp_output$results.LATITUDE
+  pri_sch$LONGITUDE[i] <- temp_output$results.LONGITUDE
+}
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+glimpse(pri_sch)
+```
+Now we can see that the lat and lon columns.
+
+Lastly, we will convert it to as sf, with the correct projection.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+prisch_sf <- st_as_sf(pri_sch,
+                    coords = c("LONGITUDE", 
+                               "LATITUDE"),
+                    crs=4326) %>%
+  st_transform(crs = 3414)
+```
+
+Since the other locational factor dataframes have the name of the amenity and its geometry column. We will need to keep the name column with select(c(n)), using the relevant column number n.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+prisch_sf <- prisch_sf %>%
+  select(c(1))
+```
+
+Let's get the unique school names so that there are no duplicate names.
+```{r}
+prisch_sf <- unique(prisch_sf)
+```
+
+
+Run the primary schools data through the get_within function to get the number of primary schools within 1km.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- get_within(resale_sf, prisch_sf, 1000, "WITHIN_1KM_PRISCH")
+```
+
+#### 5.3.3 Good Primary Schools
+We can extract the top 10 primary schools in 2022 from [salary.sg](https://www.salary.sg/2022/best-primary-schools-2022-by-popularity/).
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+url <- "https://www.salary.sg/2022/best-primary-schools-2022-by-popularity/"
+
+good_pri <- data.frame()
+
+schools <- read_html(url) %>%
+  html_nodes(xpath = paste('//*[@id="post-33132"]/div[3]/div/div/ol/li') ) %>%
+  html_text() 
+
+for (i in (schools)){
+  sch_name <- toupper(gsub(" – .*","",i))
+  sch_name <- gsub("\\(PRIMARY SECTION)","",sch_name)
+  sch_name <- trimws(sch_name)
+  new_row <- data.frame(pri_sch_name=sch_name)
+  # Add the row
+  good_pri <- rbind(good_pri, new_row)
+}
+
+top_good_pri <- head(good_pri, 10)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+top_good_pri
+```
+Now, we will check which top schools are not in prisch_sf.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+top_good_pri$pri_sch_name[!top_good_pri$pri_sch_name %in% prisch_sf$school_name]
+```
+We will need to create another function that utilises OneMap API to feed the postal code to get the lat and lon.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+get_coords <- function(add_list){
+  
+  # Create a data frame to store all retrieved coordinates
+  postal_coords <- data.frame()
+    
+  for (i in add_list){
+    #print(i)
+
+    r <- GET('https://developers.onemap.sg/commonapi/search?',
+           query=list(searchVal=i,
+                     returnGeom='Y',
+                     getAddrDetails='Y'))
+    data <- fromJSON(rawToChar(r$content))
+    found <- data$found
+    res <- data$results
+    
+    # Create a new data frame for each address
+    new_row <- data.frame()
+    
+    # If single result, append 
+    if (found == 1){
+      postal <- res$POSTAL 
+      lat <- res$LATITUDE
+      lng <- res$LONGITUDE
+      new_row <- data.frame(address= i, postal = postal, latitude = lat, longitude = lng)
+    }
+    
+    # If multiple results, drop NIL and append top 1
+    else if (found > 1){
+      # Remove those with NIL as postal
+      res_sub <- res[res$POSTAL != "NIL", ]
+      
+      # Set as NA first if no Postal
+      if (nrow(res_sub) == 0) {
+          new_row <- data.frame(address= i, postal = NA, latitude = NA, longitude = NA)
+      }
+      
+      else{
+        top1 <- head(res_sub, n = 1)
+        postal <- top1$POSTAL 
+        lat <- top1$LATITUDE
+        lng <- top1$LONGITUDE
+        new_row <- data.frame(address= i, postal = postal, latitude = lat, longitude = lng)
+      }
+    }
+
+    else {
+      new_row <- data.frame(address= i, postal = NA, latitude = NA, longitude = NA)
+    }
+    
+    postal_coords <- rbind(postal_coords, new_row)
+  }
+  return(postal_coords)
+}
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+good_pri_list <- unique(top_good_pri$pri_sch_name)
+goodprisch_coords <- get_coords(good_pri_list)
+goodprisch_coords
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+goodprisch_coords[(is.na(goodprisch_coords$postal) | is.na(goodprisch_coords$latitude) | is.na(goodprisch_coords$longitude)), ]
+```
+In order to fix this, let's change the apostrophe symbol.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+top_good_pri$pri_sch_name[top_good_pri$pri_sch_name == "ST. HILDA’S PRIMARY SCHOOL"] <- "ST. HILDA'S PRIMARY SCHOOL"
+```
+
+Let's check if there are still any null values in the new coordinates list.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+good_pri_list <- unique(top_good_pri$pri_sch_name)
+good_pri_list
+```
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+goodprisch_coords <- get_coords(good_pri_list)
+goodprisch_coords
+```
+Lastly, let's convert the layer using `st_as_sf`, with the correct projection.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+good_pri_sf <- st_as_sf(goodprisch_coords,
+                    coords = c("longitude", 
+                               "latitude"),
+                    crs=4326) %>%
+  st_transform(crs = 3414)
+```
+
+With this, we can get the proximity of good schools.
+```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
+resale_sf <- get_prox(resale_sf, good_pri_sf, "PROX_GOOD_PRISCH")
+```
+
+### 5.4 Train and Test Dataframe
+Let's filter out the data based on requiments, using `filter()`.
+
+```{r}
+resale_train <- resale_sf %>% 
+                  filter(month >= "2021-01" & month <= "2022-12")
+```
+
+```{r}
+resale_test <- resale_sf %>% 
+                  filter(month >= "2023-01" & month <= "2023-02")
+```
+
+
+## 6.0 Exploratory Data Analysis (EDA)
 
 In the section, you will learn how to use statistical graphics functions of ggplot2 package to perform EDA.
 
 Let's start by loading our data set.
 
-```{r}
-#| code-fold: true
-#| code-summary: "Show the code"
-resale_sf <- st_read(dsn="data/geospatial", layer="resale-final")
-```
+`resale_sf <- st_read(dsn="data/geospatial", layer="resale-final")`
 
 ```{r}
 #| code-fold: true
@@ -497,7 +907,7 @@ resale_sf <- st_read(dsn="data/geospatial", layer="resale-final")
 glimpse(resale_sf)
 ```
 
-### 5.1 EDA using statistical graphics
+### 6.1 EDA using statistical graphics
 
 We can plot the distribution of SELLING_PRICE by using appropriate Exploratory Data Analysis (EDA) as shown in the code chunk below.
 
@@ -528,9 +938,39 @@ ggplot(data=resale_sf, aes(x=`LOG_SELLING_PRICE`)) +
 
 Now, the distribution is relatively less skewed after the log transformation.
 
-### 5.2 Drawing Statistical Point Map
+### 6.2 Multiple Histogram Plots distribution of variables
+```{r}
+AREA_SQM <- ggplot(data=resale_sf, aes(x= `flr_r_s`)) + 
+  geom_histogram(bins=20, color="black", fill="light blue")
 
-We want to visualise the geospatial distribution of resale prices in Singapore. For this,w e will be using tmap package.
+PROX_CBD <- ggplot(data=resale_sf, aes(x= `PROX_CBD`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+
+PROX_ELDERLYCARE <- ggplot(data=resale_sf, aes(x= `PROX_ELDERCARE`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+
+PROX_HAWKER_MARKET <- ggplot(data=resale_sf, aes(x= `PROX_HAWKER`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+
+PROX_BUS <- ggplot(data=resale_sf, aes(x= `PROX_BUS`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+
+PROX_PARK <- ggplot(data=resale_sf, aes(x= `PROX_PARK`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+
+PROX_GOOD_PRISCH <- ggplot(data=resale_sf, 
+                               aes(x= `PROX_GOOD_PRISCH`)) +
+  geom_histogram(bins=20, color="black", fill="light blue")
+
+ggarrange(AREA_SQM, PROX_CBD, PROX_ELDERLYCARE, 
+          PROX_HAWKER_MARKET, PROX_BUS,
+          PROX_PARK, PROX_GOOD_PRISCH,  
+          ncol = 3, nrow = 3)
+```
+
+### 6.3 Drawing Statistical Point Map
+
+We want to visualise the geospatial distribution of resale prices in Singapore. For this, we will be using tmap package.
 
 ```{r}
 #| code-fold: true
@@ -546,14 +986,108 @@ tm_shape(resale_sf) +
 ```
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Show the code"
 tmap_mode("plot")
 ```
 
-## 6.0 Hedonic Pricing Modelling in R
+## 7.0 Hedonic Pricing Modelling in R
 
-### 6.1 Simple Linear Regression Method
+### 7.1 Simple Linear Regression Method
+
+This simple linear regression model will be built based on the resale price as the dependent variable and area per metre as the independent variable.
 
 ```{r}
 resale_slr <- lm(formula=rsl_prc ~ flr_r_s, data = resale_sf)
 ```
+
+```{r}
+summary(resale_slr)
+```
+
+The output report reveals that the selling price can be explained by using this formula:
+
+y = 95799.1 + 4072.2x
+
+From the R-squared value of 0.08914, we can tell that the model built is able to explain about 8.9% of the resale prices.
+
+Since the p-value is lesser than 0.0001, we will reject the null hypothesis that mean is a good estimator of selling price. This will allow us to infer that simple linear regression model above is a good estimator of selling price.
+
+The Coefficients: section of the report reveals that the p-values of both the estimates of the Intercept and ARA_SQM are smaller than 0.001. In view of this, the null hypothesis of the B0 and B1 are equal to 0 will be rejected. As a results, we will be able to infer that the B0 and B1 are good parameter estimates.
+
+To visualise the best fit curve on a scatterplot, we can incorporate `lm()` as a method function in ggplot’s geometry as shown in the code chunk below.
+
+```{r}
+ggplot(data=resale_sf,  
+       aes(x=`flr_r_s`, y=`rsl_prc`)) +
+  geom_point() +
+  geom_smooth(method = lm)
+```
+Figure above reveals that there are a few statistical outliers with relatively high selling prices.
+
+### 7.2 Correlation Matrix
+Correlation matrix is commonly used to visualise the relationships between the independent variables. Beside the pairs() of R, there are many packages support the display of a correlation matrix. In this section, the corrplot package will be used.
+
+first, let's remove geometry.
+```{r}
+resale_no_geometry <- resale_sf %>% st_drop_geometry()
+resale_no_geometry
+```
+
+
+```{r}
+corrplot(cor(resale_no_geometry[, 10:24]), diag = FALSE, order = "AOE",
+         tl.pos = "td", tl.cex = 0.5, method = "number", type = "upper")
+```
+The correlation matrix shows that that most values are below 0.6.
+
+### 7.3 Ordinary Least Squares (OLS) Method
+This can be done by using `lm()` function.
+
+```{r}
+train_no_geometry <- resale_train %>% st_drop_geometry()
+
+resale_mlr <- lm(formula = rsl_prc ~ stry_rd + storey_order + 
+                  PROX_BUS + PROX_CBD + PROX_ELDERCARE + PROX_GOOD_PRISCH
+                + PROX_HAWKER + PROX_PARK + PROX_MRT + WITHIN_350M_PARKS
+                + WITHIN_1KM_PRISCH + WITHIN_350M_BUS_STOPS, + WITHIN_350M_ELDERCARE,
+                data=train_no_geometry)
+summary(resale_mlr)
+```
+
+#### 7.3.1 Pubication Quality Table
+```{r}
+resale_mlr1 <- lm(formula = rsl_prc ~ stry_rd + storey_order + 
+                  PROX_BUS + PROX_CBD + PROX_ELDERCARE + PROX_GOOD_PRISCH
+                + PROX_HAWKER + PROX_PARK + PROX_MRT + WITHIN_350M_PARKS
+                + WITHIN_1KM_PRISCH + WITHIN_350M_BUS_STOPS, + WITHIN_350M_ELDERCARE,
+                data=train_no_geometry)
+tbl_regression(resale_mlr1, intercept = TRUE)
+```
+
+#### 7.3.2 Check for multicolinearity
+`ols_vif_tol()` of olsrr package is used to test if there are sign of multicollinearity.
+```{r}
+ols_vif_tol(resale_mlr1)
+```
+Since the VIF of the independent variables are less than 10. We can safely conclude that there are no sign of multicollinearity among the independent variables.
+
+#### 7.3.3 Test for Non-Linearity
+In multiple linear regression, it is important for us to test the assumption that linearity and additivity of the relationship between dependent and independent variables.
+
+`ols_plot_resid_fit()` of olsrr package is used to perform linearity assumption test.
+
+```{r}
+ols_plot_resid_fit(resale_mlr1)
+```
+
+#### 7.3.4 Test for Normality Assumption
+
+Lastly, the code chunk below uses `ols_plot_resid_hist()` of olsrr package to perform normality assumption test.
+
+```{r}
+ols_plot_resid_hist(resale_mlr1)
+```
+
+
 
